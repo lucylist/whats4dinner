@@ -188,19 +188,34 @@ async function fetchWithTimeout(
 async function fetchPageContent(url: string): Promise<string | null> {
   // 1. Try direct fetch (works for some sites or same-origin)
   const direct = await fetchWithTimeout(url, { headers: { Accept: 'text/html' } }, 8000);
-  if (direct) return direct;
+  if (direct && direct.length > 500) return direct;
 
   // 2. Try multiple CORS proxies in order
   const proxies = [
     (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    (u: string) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    (u: string) => `https://thingproxy.freeboard.io/fetch/${u}`,
+    (u: string) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
   ];
 
   for (const buildUrl of proxies) {
-    const html = await fetchWithTimeout(buildUrl(url), {}, 10000);
-    if (html && html.length > 500) return html; // sanity check: real pages are > 500 chars
+    const html = await fetchWithTimeout(buildUrl(url), {}, 12000);
+    if (html && html.length > 500) return html;
   }
+
+  // 3. Try allorigins JSON endpoint (wraps response, more reliable than raw)
+  try {
+    const aoJson = await fetchWithTimeout(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+      {},
+      12000
+    );
+    if (aoJson) {
+      const parsed = JSON.parse(aoJson);
+      if (parsed.contents && parsed.contents.length > 500) return parsed.contents;
+    }
+  } catch { /* continue */ }
 
   return null;
 }
