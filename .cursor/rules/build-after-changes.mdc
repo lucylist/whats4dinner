@@ -1,0 +1,14 @@
+---
+description: Always rebuild dist after code changes
+alwaysApply: true
+---
+
+# Build After Changes
+
+After making code changes to the project, always run the build command to update the dist folder:
+
+```bash
+npm run build
+```
+
+This ensures the `dist/` folder stays in sync with the source and is ready for deployment to Quick at any time.
