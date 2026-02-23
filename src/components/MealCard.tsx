@@ -160,12 +160,16 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   
   // Generate AI image if no image is set and we haven't tried yet
   React.useEffect(() => {
-    if (meal.imageUrl || aiGeneratedImage || isGeneratingImage || generationAttempted) return;
+    // Skip if already have a working image or currently generating
+    if (aiGeneratedImage || isGeneratingImage || generationAttempted) return;
+    // Skip if meal has a real image URL (not a broken data URI)
+    if (meal.imageUrl && !meal.imageUrl.startsWith('data:') && meal.imageUrl.startsWith('http')) return;
 
     setGenerationAttempted(true);
+    console.log(`[ImageGen] Queuing generation for: ${meal.name} (current imageUrl: ${meal.imageUrl ? meal.imageUrl.slice(0, 50) + '...' : 'none'})`);
     const timer = setTimeout(() => {
       generateAiImage(meal.name);
-    }, 300 + Math.random() * 700); // stagger requests
+    }, 300 + Math.random() * 700);
     return () => clearTimeout(timer);
   }, [meal.imageUrl, meal.name, aiGeneratedImage, isGeneratingImage, generationAttempted]);
 
