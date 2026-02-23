@@ -27,6 +27,23 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageLoaded, setImageLoaded] = useState(false);
   
   // Generate AI image via Quick AI proxy (only works on Quick platform)
+  const uploadBase64ToQuick = async (b64: string): Promise<string | null> => {
+    try {
+      const quick = (window as any).quick;
+      if (!quick?.fs) return null;
+      const byteString = atob(b64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      const blob = new Blob([ab], { type: 'image/png' });
+      const file = new File([blob], `meal-${Date.now()}.png`, { type: 'image/png' });
+      const result = await quick.fs.uploadFile(file);
+      return result?.files?.[0]?.fullUrl || result?.files?.[0]?.url || null;
+    } catch {
+      return null;
+    }
+  };
+
   const generateAiImage = async (mealName: string) => {
     if (isGeneratingImage) return;
     
@@ -44,23 +61,42 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
         }),
       });
       
-      if (!response.ok) throw new Error('Image generation not available');
+      if (!response.ok) throw new Error('Quick AI not available');
       
       const data = await response.json();
-      // gpt-image-1 returns b64_json, DALL-E returns url
       const b64 = data.data?.[0]?.b64_json;
-      const imageUrl = b64
-        ? `data:image/png;base64,${b64}`
-        : data.data?.[0]?.url;
-      if (!imageUrl) throw new Error('No image URL returned');
+      let imageUrl = data.data?.[0]?.url;
+
+      if (b64) {
+        // Upload to Quick file storage so we get a proper URL (avoids huge base64 in Firestore)
+        const hostedUrl = await uploadBase64ToQuick(b64);
+        imageUrl = hostedUrl || `data:image/png;base64,${b64}`;
+      }
+
+      if (!imageUrl) throw new Error('No image returned');
 
       setAiGeneratedImage(imageUrl);
-      
-      if (onUpdateImage) {
-        onUpdateImage(meal.id, imageUrl);
-      }
+      if (onUpdateImage) onUpdateImage(meal.id, imageUrl);
     } catch {
-      // AI image generation not available (running locally or API error) -- use placeholder
+      // Quick AI not available (GitHub Pages or local dev) — use stock food photo
+      try {
+        const query = encodeURIComponent(mealName.replace(/[^a-zA-Z\s]/g, ''));
+        const stockUrl = `https://loremflickr.com/600/400/${query},food,dish`;
+
+        const ok = await new Promise<boolean>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img.naturalWidth > 1);
+          img.onerror = () => resolve(false);
+          img.src = stockUrl;
+          setTimeout(() => resolve(false), 6000);
+        });
+
+        if (ok) {
+          setAiGeneratedImage(stockUrl);
+          if (onUpdateImage) onUpdateImage(meal.id, stockUrl);
+          return;
+        }
+      } catch { /* fall through */ }
       setImageError(true);
     } finally {
       setIsGeneratingImage(false);
