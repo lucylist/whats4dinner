@@ -201,12 +201,10 @@ export default function ThisWeek() {
     const sourceDate = e.dataTransfer.getData('text/plain');
     
     if (sourceDate && sourceDate !== targetDate && currentPlan) {
-      // Find the indices of the source and target days
       const sourceIndex = currentPlan.days.findIndex(d => d.date === sourceDate);
       const targetIndex = currentPlan.days.findIndex(d => d.date === targetDate);
       
       if (sourceIndex !== -1 && targetIndex !== -1) {
-        // Create a new days array with swapped meal content
         const newDays = [...currentPlan.days];
         const sourceDay = { ...newDays[sourceIndex] };
         const targetDay = { ...newDays[targetIndex] };
@@ -227,7 +225,26 @@ export default function ThisWeek() {
           customNote: sourceDay.customNote,
         };
         
-        // Update the plan
+        // Relink leftover days to the meal from the day before them
+        for (let i = 0; i < newDays.length; i++) {
+          if (newDays[i].type === 'leftovers' && i > 0) {
+            const prevDay = newDays[i - 1];
+            if (prevDay.type === 'meal' && prevDay.mealId) {
+              newDays[i] = {
+                ...newDays[i],
+                mealId: prevDay.mealId,
+                leftoverFromDate: prevDay.date,
+              };
+            } else if (prevDay.type === 'leftovers' && prevDay.mealId) {
+              newDays[i] = {
+                ...newDays[i],
+                mealId: prevDay.mealId,
+                leftoverFromDate: prevDay.leftoverFromDate,
+              };
+            }
+          }
+        }
+        
         setCurrentPlan({
           ...currentPlan,
           days: newDays,
