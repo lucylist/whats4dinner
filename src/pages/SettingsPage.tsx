@@ -54,9 +54,15 @@ export default function SettingsPage() {
     setTestResult(null);
     try {
       if (isShopifyProxyKey(key)) {
-        // Test Shopify proxy by calling the models endpoint
-        const res = await fetch('/api/ai/models', {
-          headers: { Authorization: `Bearer ${key}` },
+        // Test Shopify proxy with a tiny chat completion
+        const res = await fetch('/api/ai/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: 'hi' }],
+            max_tokens: 1,
+          }),
         });
         setTestResult(res.ok ? 'success' : 'error');
       } else {
@@ -161,8 +167,8 @@ export default function SettingsPage() {
         <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
           <p className="font-medium text-gray-700">Supported key types:</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li><span className="font-mono text-xs">shopify-...</span> — Shopify LLM proxy token (internal)</li>
-            <li><span className="font-mono text-xs">sk-...</span> — OpenAI API key (<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">get one here</a>)</li>
+            <li><span className="font-mono text-xs">shopify-...</span> — Shopify LLM proxy token (only works on <span className="font-medium">quick.shopify.io</span>)</li>
+            <li><span className="font-mono text-xs">sk-...</span> — OpenAI API key — works everywhere (<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">get one here</a>)</li>
           </ul>
         </div>
       </div>
