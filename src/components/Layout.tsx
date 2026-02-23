@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, Calendar, Settings, Refrigerator, LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { ChefHat, Calendar, Settings, Refrigerator } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,7 +8,6 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { user, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -23,31 +21,11 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 bg-white shadow-sm border-b border-gray-200 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-primary-600 flex items-center gap-2">
             <ChefHat className="w-8 h-8" />
             What's for dinner?
           </h1>
-          {user && (
-            <div className="flex items-center gap-3">
-              <img
-                src={user.photoURL || ''}
-                alt=""
-                className="w-8 h-8 rounded-full border-2 border-primary-200"
-                referrerPolicy="no-referrer"
-              />
-              <span className="text-sm text-gray-600 hidden sm:inline">
-                {user.displayName?.split(' ')[0]}
-              </span>
-              <button
-                onClick={logout}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-                title="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          )}
         </div>
       </header>
 

@@ -11,12 +11,10 @@ import {
   deleteInventoryItem as deleteInventoryItemFromStorage
 } from '../utils/storage';
 import { getQuickDB } from '../utils/quick';
-import { useAuth } from './AuthContext';
 import { db as firestoreDb } from '../config/firebase';
 import {
   collection,
   doc,
-  getDocs,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -44,7 +42,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [currentPlan, setCurrentPlanState] = useState<WeeklyPlan | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -60,51 +57,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const initData = async () => {
       setIsLoading(true);
 
-      // If user is signed in via Firebase, prefer Firestore for shared data
-      if (user) {
-        try {
-          // Subscribe to meals in real-time
-          const mealsQuery = query(collection(firestoreDb, 'meals'));
-          unsubs.push(
-            onSnapshot(mealsQuery, (snapshot) => {
-              if (cancelled) return;
-              const docs = snapshot.docs.map(d => d.data() as Meal);
-              setMeals(docs);
-            })
-          );
+      // Try Firestore first for shared family data
+      try {
+        const mealsQuery = query(collection(firestoreDb, 'meals'));
+        unsubs.push(
+          onSnapshot(mealsQuery, (snapshot) => {
+            if (cancelled) return;
+            const docs = snapshot.docs.map(d => d.data() as Meal);
+            setMeals(docs);
+          }, () => {
+            // Firestore listener failed, will fall through to other sources
+          })
+        );
 
-          // Subscribe to plans
-          const plansQuery = query(collection(firestoreDb, 'plans'));
-          unsubs.push(
-            onSnapshot(plansQuery, (snapshot) => {
-              if (cancelled) return;
-              const docs = snapshot.docs.map(d => d.data() as WeeklyPlan);
-              const plan = docs[0] || null;
-              if (plan && !plan.duration) {
-                plan.duration = 'week';
-                plan.durationCount = 1;
-              }
-              setCurrentPlanState(plan);
-            })
-          );
+        const plansQuery = query(collection(firestoreDb, 'plans'));
+        unsubs.push(
+          onSnapshot(plansQuery, (snapshot) => {
+            if (cancelled) return;
+            const docs = snapshot.docs.map(d => d.data() as WeeklyPlan);
+            const plan = docs[0] || null;
+            if (plan && !plan.duration) {
+              plan.duration = 'week';
+              plan.durationCount = 1;
+            }
+            setCurrentPlanState(plan);
+          }, () => {})
+        );
 
-          // Subscribe to inventory
-          const invQuery = query(collection(firestoreDb, 'inventory'));
-          unsubs.push(
-            onSnapshot(invQuery, (snapshot) => {
-              if (cancelled) return;
-              const docs = snapshot.docs.map(d => d.data() as InventoryItem);
-              setInventory(docs);
-            })
-          );
+        const invQuery = query(collection(firestoreDb, 'inventory'));
+        unsubs.push(
+          onSnapshot(invQuery, (snapshot) => {
+            if (cancelled) return;
+            const docs = snapshot.docs.map(d => d.data() as InventoryItem);
+            setInventory(docs);
+          }, () => {})
+        );
 
-          setUseFirestore(true);
-          setIsLoading(false);
-          console.log('🔥 Connected to Firestore (shared family data)');
-          return;
-        } catch (e) {
-          console.log('Firestore error, trying Quick DB...', e);
-        }
+        setUseFirestore(true);
+        setIsLoading(false);
+        console.log('🔥 Connected to Firestore (shared family data)');
+        return;
+      } catch (e) {
+        console.log('Firestore not available, trying Quick DB...', e);
       }
 
       // Try Quick DB next
@@ -158,7 +152,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unsubs.forEach(u => u());
     };
-  }, [user]);
+  }, []);
 
   // --- Meal operations ---
   const addMeal = async (meal: Meal) => {
@@ -167,7 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (useFirestore) {
       try {
         await setDoc(doc(firestoreDb, 'meals', meal.id), meal);
-        return; // Firestore onSnapshot will update local state
+        return;
       } catch (e) {
         console.error('Firestore save error:', e);
       }
