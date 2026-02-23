@@ -55,7 +55,7 @@ function App() {
 
   return (
     <AppProvider roomId={roomId}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Layout>
           <Routes>
             <Route path="/" element={<Navigate to="/calendar" replace />} />

@@ -22,17 +22,20 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}${window.location.pathname}?family=${roomId}`;
+    const base = import.meta.env.BASE_URL || '/';
+    const url = `${window.location.origin}${base}?family=${roomId}`;
     try {
-      if (navigator.share) {
-        await navigator.share({ title: "What's for dinner?", text: 'Join my family meal planner!', url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {
       await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
