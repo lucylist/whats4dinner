@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
@@ -11,10 +12,49 @@ import Fridge from './pages/Fridge';
 import AddIngredient from './pages/AddIngredient';
 import Recommendations from './pages/Recommendations';
 import PhotoScan from './pages/PhotoScan';
+import Welcome from './pages/Welcome';
+import { resolveRoom, generateRoomId, saveRoom, setRoomInUrl } from './utils/room';
 
 function App() {
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const existing = resolveRoom();
+    if (existing) {
+      setRoomId(existing);
+      setRoomInUrl(existing);
+    }
+    setChecked(true);
+  }, []);
+
+  const handleCreateRoom = () => {
+    const id = generateRoomId();
+    saveRoom(id);
+    setRoomInUrl(id);
+    setRoomId(id);
+  };
+
+  const handleJoinRoom = (code: string) => {
+    saveRoom(code);
+    setRoomInUrl(code);
+    setRoomId(code);
+  };
+
+  if (!checked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (!roomId) {
+    return <Welcome onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />;
+  }
+
   return (
-    <AppProvider>
+    <AppProvider roomId={roomId}>
       <BrowserRouter>
         <Layout>
           <Routes>

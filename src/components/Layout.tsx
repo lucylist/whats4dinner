@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, Calendar, Settings, Refrigerator } from 'lucide-react';
+import { ChefHat, Calendar, Settings, Refrigerator, Share2, Check } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +9,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { roomId } = useApp();
+  const [copied, setCopied] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -18,14 +21,50 @@ export default function Layout({ children }: LayoutProps) {
       : `${base} text-gray-600 hover:bg-gray-100`;
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?family=${roomId}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "What's for dinner?", text: 'Join my family meal planner!', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 bg-white shadow-sm border-b border-gray-200 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary-600 flex items-center gap-2">
             <ChefHat className="w-8 h-8" />
             What's for dinner?
           </h1>
+          {roomId && (
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              title="Share with family"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="text-green-600">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Share</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </header>
 
