@@ -160,15 +160,29 @@ export default function MealsLibrary() {
     new Set(meals.flatMap(meal => meal.tags))
   ).sort();
   
+  // Strip quantities, units, and prep notes from an ingredient string
+  const cleanIngredientName = (raw: string): string => {
+    let s = raw.trim().toLowerCase();
+    // Remove leading numbers, fractions, and ranges (e.g. "1.5", "2 3/4", "1-2")
+    s = s.replace(/^[\d\s.\/\-–]+/, '');
+    // Remove common units at the start
+    s = s.replace(/^(ounces?|oz|pounds?|lbs?|cups?|tablespoons?|tbsp|teaspoons?|tsp|cloves?|pieces?|cans?|slices?|pinch(es)?|bunch(es)?|heads?|stalks?|sprigs?|handfuls?)\b\s*/i, '');
+    // Remove parenthetical notes like "(, thinly sliced)" or "(optional)"
+    s = s.replace(/\s*\(.*?\)/g, '');
+    // Remove trailing prep instructions after a comma (e.g. ", diced", ", cut into chunks")
+    s = s.replace(/,\s*(diced|minced|chopped|sliced|thinly sliced|divided|cubed|cut .+|to taste|or .+|peeled|grated|shredded|crushed|melted|softened|drained|rinsed|trimmed|halved|quartered).*$/i, '');
+    return s.trim();
+  };
+
   // Get all unique ingredients from all meals
   const allIngredients = Array.from(
     new Set(
       meals.flatMap(meal => {
         if (!meal.ingredients || meal.ingredients.length === 0) return [];
         return meal.ingredients.map(ing => {
-          if (typeof ing === 'string') return ing.toLowerCase();
-          return ing.name.toLowerCase();
-        });
+          const raw = typeof ing === 'string' ? ing : ing.name;
+          return cleanIngredientName(raw);
+        }).filter(name => name.length > 1);
       })
     )
   ).sort();
@@ -192,12 +206,12 @@ export default function MealsLibrary() {
       const isIncomplete = !meal.ingredients || meal.ingredients.length === 0;
       const matchesIncomplete = !showIncompleteOnly || isIncomplete;
       
-      // Filter by ingredient
+      // Filter by ingredient (compare cleaned names)
       const matchesIngredient = !selectedIngredient || (() => {
         if (!meal.ingredients || meal.ingredients.length === 0) return false;
         const mealIngredients = meal.ingredients.map(ing => {
-          if (typeof ing === 'string') return ing.toLowerCase();
-          return ing.name.toLowerCase();
+          const raw = typeof ing === 'string' ? ing : ing.name;
+          return cleanIngredientName(raw);
         });
         return mealIngredients.includes(selectedIngredient.toLowerCase());
       })();

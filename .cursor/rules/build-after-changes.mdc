@@ -1,14 +1,20 @@
 ---
-description: Always rebuild dist after code changes
+description: Always rebuild dist and push to GitHub after code changes
 alwaysApply: true
 ---
 
-# Build After Changes
+# Build and Deploy After Changes
 
-After making code changes to the project, always run the build command to update the dist folder:
+After making code changes to this project, always do both of these steps:
 
+1. **Rebuild dist** for Quick deployment:
 ```bash
 npm run build
 ```
 
-This ensures the `dist/` folder stays in sync with the source and is ready for deployment to Quick at any time.
+2. **Commit and push to GitHub** so GitHub Pages auto-deploys:
+```bash
+git add -A && git commit -m "description of changes" && git push
+```
+
+Always do both steps after every code change. Never skip either one.
