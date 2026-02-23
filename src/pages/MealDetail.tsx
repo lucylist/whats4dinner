@@ -69,7 +69,7 @@ export default function MealDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600">Meal not found.</p>
-        <Button onClick={() => navigate('/')} className="mt-4">
+        <Button onClick={() => navigate('/meals')} className="mt-4">
           Back to all meals
         </Button>
       </div>
@@ -80,7 +80,7 @@ export default function MealDetail() {
     if (window.confirm(`Are you sure you want to delete "${meal.name}"?`)) {
       deleteMeal(meal.id);
       setSelectedMealId(null);
-      navigate('/');
+      navigate('/meals');
     }
   };
   
@@ -91,7 +91,7 @@ export default function MealDetail() {
       }
     }
     setSelectedMealId(null);
-    navigate('/');
+    navigate('/meals');
   };
   
   const handleSave = () => {

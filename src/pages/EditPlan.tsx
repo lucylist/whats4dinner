@@ -30,7 +30,7 @@ export default function EditPlan() {
   const handleSave = () => {
     if (editedPlan) {
       updateCurrentPlan(editedPlan);
-      navigate('/this-week');
+      navigate('/calendar');
     }
   };
   
@@ -91,7 +91,7 @@ export default function EditPlan() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/this-week')}
+            onClick={() => navigate('/calendar')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -274,7 +274,7 @@ export default function EditPlan() {
           <Save className="w-5 h-5 mr-2" />
           Save Changes
         </Button>
-        <Button fullWidth variant="secondary" onClick={() => navigate('/this-week')} size="lg">
+        <Button fullWidth variant="secondary" onClick={() => navigate('/calendar')} size="lg">
           Cancel
         </Button>
       </div>

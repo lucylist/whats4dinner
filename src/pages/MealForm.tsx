@@ -231,7 +231,7 @@ export default function MealForm() {
         
         {!isEditing && (
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/meals')}
             variant="outline"
             className="flex items-center gap-2"
           >
@@ -267,7 +267,7 @@ export default function MealForm() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/meals')}
               className="px-3 py-1 bg-white text-green-600 rounded font-medium text-sm hover:bg-green-50 transition-colors"
             >
               View all →
@@ -473,7 +473,7 @@ export default function MealForm() {
                 variant="secondary" 
                 onClick={() => {
                   setSelectedMealId(null);
-                  navigate('/');
+                  navigate('/meals');
                 }}
               >
                 Cancel

@@ -43,7 +43,7 @@ export default function PlanWeek() {
       const plan = generateWeeklyPlan(meals, new Date(), preferences);
       setCurrentPlan(plan);
       setIsGenerating(false);
-      navigate('/this-week');
+      navigate('/calendar');
     }, 500);
   };
   
@@ -52,7 +52,7 @@ export default function PlanWeek() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/this-week')}
+          onClick={() => navigate('/calendar')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           title="Back"
         >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 import MealsLibrary from './pages/MealsLibrary';
@@ -58,10 +58,12 @@ function App() {
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route path="/" element={<MealsLibrary />} />
+            <Route path="/" element={<Navigate to="/calendar" replace />} />
+            <Route path="/calendar" element={<ThisWeek />} />
+            <Route path="/this-week" element={<Navigate to="/calendar" replace />} />
+            <Route path="/meals" element={<MealsLibrary />} />
             <Route path="/meal-detail" element={<MealDetail />} />
             <Route path="/meal-form" element={<MealForm />} />
-            <Route path="/this-week" element={<ThisWeek />} />
             <Route path="/plan-week" element={<PlanWeek />} />
             <Route path="/edit-plan" element={<EditPlan />} />
             <Route path="/fridge" element={<Fridge />} />

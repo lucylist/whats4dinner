@@ -73,7 +73,7 @@ export default function Recommendations() {
       
       updateCurrentPlan(updatedPlan);
       alert(`${toTitleCase(rec.meal.name)} added to your plan!`);
-      navigate('/this-week');
+      navigate('/calendar');
     }
   };
   

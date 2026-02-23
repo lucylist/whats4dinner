@@ -56,6 +56,18 @@ function roomDoc(roomId: string, colName: string, docId: string) {
   return doc(firestoreDb, 'rooms', roomId, colName, docId);
 }
 
+async function testFirestoreConnectivity(roomId: string): Promise<boolean> {
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore timeout')), 5000)
+    );
+    await Promise.race([getDocs(roomCollection(roomId, 'meals')), timeout]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function migrateLocalStorageToFirestore(roomId: string) {
   const localMeals = getAllMeals();
   const localPlan = getCurrentWeeklyPlan();
@@ -63,28 +75,20 @@ async function migrateLocalStorageToFirestore(roomId: string) {
 
   if (localMeals.length === 0 && !localPlan && localInventory.length === 0) return;
 
-  // Check if the room already has data (another family member might have set it up)
   const existingMeals = await getDocs(roomCollection(roomId, 'meals'));
   if (existingMeals.size > 0) return;
 
-  console.log(`Migrating ${localMeals.length} meals, ${localInventory.length} inventory items to room ${roomId}...`);
-
   const writes: Promise<void>[] = [];
-
   for (const meal of localMeals) {
     writes.push(setDoc(roomDoc(roomId, 'meals', meal.id), meal));
   }
-
   if (localPlan) {
     writes.push(setDoc(roomDoc(roomId, 'plans', localPlan.id), localPlan));
   }
-
   for (const item of localInventory) {
     writes.push(setDoc(roomDoc(roomId, 'inventory', item.id), item));
   }
-
   await Promise.all(writes);
-  console.log('Migration complete!');
 }
 
 export function AppProvider({ children, roomId = null }: AppProviderProps) {
@@ -104,9 +108,14 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
       setIsLoading(true);
 
       if (roomId) {
-        try {
-          // Migrate existing localStorage data into this room if it's empty
-          await migrateLocalStorageToFirestore(roomId);
+        const firestoreOk = await testFirestoreConnectivity(roomId);
+
+        if (firestoreOk) {
+          try {
+            await migrateLocalStorageToFirestore(roomId);
+          } catch (e) {
+            console.log('Migration failed (non-fatal):', e);
+          }
 
           unsubs.push(
             onSnapshot(query(roomCollection(roomId, 'meals')), (snapshot) => {
@@ -138,8 +147,8 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
           setUseFirestore(true);
           setIsLoading(false);
           return;
-        } catch (e) {
-          console.log('Firestore error, trying fallbacks...', e);
+        } else {
+          console.log('Firestore not reachable, falling back...');
         }
       }
 
