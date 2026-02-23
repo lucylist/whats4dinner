@@ -27,6 +27,39 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
+  const tryImageGeneration = async (url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const b64 = data.data?.[0]?.b64_json;
+      if (b64) {
+        // Try uploading to Quick file storage for a proper URL
+        try {
+          const quick = (window as any).quick;
+          if (quick?.fs) {
+            const byteString = atob(b64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            const file = new File([new Blob([ab], { type: 'image/png' })], `meal-${Date.now()}.png`, { type: 'image/png' });
+            const result = await quick.fs.uploadFile(file);
+            const hosted = result?.files?.[0]?.fullUrl || result?.files?.[0]?.url;
+            if (hosted) return hosted;
+          }
+        } catch { /* fall through */ }
+        return `data:image/png;base64,${b64}`;
+      }
+      return data.data?.[0]?.url || null;
+    } catch {
+      return null;
+    }
+  };
+
   const generateAiImage = async (mealName: string) => {
     if (isGeneratingImage) return;
     
@@ -34,68 +67,46 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
     const prompt = `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, top-down or 45-degree angle, restaurant quality, shallow depth of field, warm natural lighting.`;
 
     try {
+      let imageUrl: string | null = null;
       const storedKey = getStoredApiKey();
 
-      // 1. Try stored OpenAI API key (works anywhere, including GitHub Pages)
-      if (storedKey) {
-        const res = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${storedKey}`,
-          },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt,
-            n: 1,
-            size: '1024x1024',
-            quality: 'standard',
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const url = data.data?.[0]?.url;
-          if (url) {
-            setAiGeneratedImage(url);
-            if (onUpdateImage) onUpdateImage(meal.id, url);
-            return;
-          }
-        }
+      // 1. Stored OpenAI API key — works everywhere
+      if (storedKey && !imageUrl) {
+        imageUrl = await tryImageGeneration(
+          'https://api.openai.com/v1/images/generations',
+          { Authorization: `Bearer ${storedKey}` },
+          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
+        );
       }
 
-      // 2. Try Quick AI proxy (works on quick.shopify.io)
-      const response = await fetch('/api/ai/images/generations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' }),
-      });
-      
-      if (!response.ok) throw new Error('No image API available');
-      
-      const data = await response.json();
-      const b64 = data.data?.[0]?.b64_json;
-      let imageUrl = data.data?.[0]?.url;
-
-      if (b64) {
-        const quick = (window as any).quick;
-        if (quick?.fs) {
-          try {
-            const byteString = atob(b64);
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-            const file = new File([new Blob([ab], { type: 'image/png' })], `meal-${Date.now()}.png`, { type: 'image/png' });
-            const result = await quick.fs.uploadFile(file);
-            imageUrl = result?.files?.[0]?.fullUrl || result?.files?.[0]?.url || `data:image/png;base64,${b64}`;
-          } catch {
-            imageUrl = `data:image/png;base64,${b64}`;
-          }
-        } else {
-          imageUrl = `data:image/png;base64,${b64}`;
-        }
+      // 2. Quick AI proxy — try dall-e-3 (returns URL directly)
+      if (!imageUrl) {
+        imageUrl = await tryImageGeneration(
+          '/api/ai/images/generations',
+          {},
+          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
+        );
       }
 
-      if (!imageUrl) throw new Error('No image returned');
+      // 3. Quick AI proxy — try gpt-image-1 (returns b64)
+      if (!imageUrl) {
+        imageUrl = await tryImageGeneration(
+          '/api/ai/images/generations',
+          {},
+          { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' }
+        );
+      }
+
+      // 4. Quick AI proxy with /v1/ path variant
+      if (!imageUrl) {
+        imageUrl = await tryImageGeneration(
+          '/api/ai/v1/images/generations',
+          {},
+          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
+        );
+      }
+
+      if (!imageUrl) throw new Error('All image generation attempts failed');
 
       setAiGeneratedImage(imageUrl);
       if (onUpdateImage) onUpdateImage(meal.id, imageUrl);
