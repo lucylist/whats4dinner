@@ -11,6 +11,10 @@ export function getStoredApiKey(): string | null {
   }
 }
 
+export function isShopifyProxyKey(key: string): boolean {
+  return key.startsWith('shopify-');
+}
+
 export default function SettingsPage() {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -49,10 +53,18 @@ export default function SettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${key}` },
-      });
-      setTestResult(res.ok ? 'success' : 'error');
+      if (isShopifyProxyKey(key)) {
+        // Test Shopify proxy by calling the models endpoint
+        const res = await fetch('/api/ai/models', {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        setTestResult(res.ok ? 'success' : 'error');
+      } else {
+        const res = await fetch('https://api.openai.com/v1/models', {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        setTestResult(res.ok ? 'success' : 'error');
+      }
     } catch {
       setTestResult('error');
     } finally {
@@ -60,7 +72,7 @@ export default function SettingsPage() {
     }
   };
 
-  const masked = apiKey ? apiKey.slice(0, 7) + '...' + apiKey.slice(-4) : '';
+  const keyType = apiKey.trim().startsWith('shopify-') ? 'shopify' : apiKey.trim().startsWith('sk-') ? 'openai' : null;
 
   return (
     <div className="max-w-2xl mx-auto pt-6 space-y-8 pb-24">
@@ -75,9 +87,9 @@ export default function SettingsPage() {
             <Key className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">OpenAI API Key</h3>
+            <h3 className="font-semibold text-gray-900">AI Image Generation Key</h3>
             <p className="text-sm text-gray-500 mt-0.5">
-              Used to generate food images for your meals. Your key is stored only in this browser and never sent to any server except OpenAI.
+              Used to generate food images for your meals. Accepts an OpenAI API key or a Shopify LLM proxy token. Stored only in this browser.
             </p>
           </div>
         </div>
@@ -88,7 +100,7 @@ export default function SettingsPage() {
               type={showKey ? 'text' : 'password'}
               value={apiKey}
               onChange={(e) => { setApiKey(e.target.value); setSaved(false); setTestResult(null); }}
-              placeholder="sk-..."
+              placeholder="sk-... or shopify-..."
               className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm font-mono"
             />
             <button
@@ -99,6 +111,12 @@ export default function SettingsPage() {
               {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+
+          {keyType && (
+            <p className="text-xs text-gray-400">
+              Detected: {keyType === 'shopify' ? 'Shopify LLM proxy token' : 'OpenAI API key'}
+            </p>
+          )}
 
           <div className="flex gap-2">
             <button
@@ -135,19 +153,17 @@ export default function SettingsPage() {
           {testResult === 'error' && (
             <div className="flex items-center gap-2 text-red-600 text-sm">
               <AlertCircle className="w-4 h-4" />
-              Key is invalid or expired. Check your OpenAI dashboard.
+              Key is invalid or expired.
             </div>
           )}
         </div>
 
         <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 space-y-2">
-          <p className="font-medium text-gray-700">How to get an API key:</p>
-          <ol className="list-decimal list-inside space-y-1">
-            <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">platform.openai.com/api-keys</a></li>
-            <li>Click "Create new secret key"</li>
-            <li>Copy and paste it above</li>
-          </ol>
-          <p className="text-xs text-gray-400 mt-2">Image generation costs ~$0.02 per image with gpt-image-1.</p>
+          <p className="font-medium text-gray-700">Supported key types:</p>
+          <ul className="space-y-1 list-disc list-inside">
+            <li><span className="font-mono text-xs">shopify-...</span> — Shopify LLM proxy token (internal)</li>
+            <li><span className="font-mono text-xs">sk-...</span> — OpenAI API key (<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary-600 underline">get one here</a>)</li>
+          </ul>
         </div>
       </div>
     </div>

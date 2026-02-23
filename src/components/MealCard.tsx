@@ -5,7 +5,7 @@ import { Meal } from '../types';
 import { Tag, Edit, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toTitleCase } from '../utils/storage';
-import { getStoredApiKey } from '../pages/SettingsPage';
+import { getStoredApiKey, isShopifyProxyKey } from '../pages/SettingsPage';
 
 interface MealCardProps {
   meal: Meal;
@@ -27,7 +27,7 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  const tryImageGeneration = async (url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
+  const tryFetch = async (url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -38,14 +38,13 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
       const data = await res.json();
       const b64 = data.data?.[0]?.b64_json;
       if (b64) {
-        // Try uploading to Quick file storage for a proper URL
         try {
           const quick = (window as any).quick;
           if (quick?.fs) {
-            const byteString = atob(b64);
-            const ab = new ArrayBuffer(byteString.length);
+            const raw = atob(b64);
+            const ab = new ArrayBuffer(raw.length);
             const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            for (let i = 0; i < raw.length; i++) ia[i] = raw.charCodeAt(i);
             const file = new File([new Blob([ab], { type: 'image/png' })], `meal-${Date.now()}.png`, { type: 'image/png' });
             const result = await quick.fs.uploadFile(file);
             const hosted = result?.files?.[0]?.fullUrl || result?.files?.[0]?.url;
@@ -70,41 +69,23 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
       let imageUrl: string | null = null;
       const storedKey = getStoredApiKey();
 
-      // 1. Stored OpenAI API key — works everywhere
-      if (storedKey && !imageUrl) {
-        imageUrl = await tryImageGeneration(
-          'https://api.openai.com/v1/images/generations',
-          { Authorization: `Bearer ${storedKey}` },
-          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
-        );
+      if (storedKey) {
+        const auth = { Authorization: `Bearer ${storedKey}` };
+
+        if (isShopifyProxyKey(storedKey)) {
+          // Shopify LLM proxy token → call Quick AI proxy with auth
+          if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
+          if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', auth, { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
+          if (!imageUrl) imageUrl = await tryFetch('/api/ai/v1/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
+        } else {
+          // OpenAI API key → call OpenAI directly
+          imageUrl = await tryFetch('https://api.openai.com/v1/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
+        }
       }
 
-      // 2. Quick AI proxy — try dall-e-3 (returns URL directly)
-      if (!imageUrl) {
-        imageUrl = await tryImageGeneration(
-          '/api/ai/images/generations',
-          {},
-          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
-        );
-      }
-
-      // 3. Quick AI proxy — try gpt-image-1 (returns b64)
-      if (!imageUrl) {
-        imageUrl = await tryImageGeneration(
-          '/api/ai/images/generations',
-          {},
-          { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' }
-        );
-      }
-
-      // 4. Quick AI proxy with /v1/ path variant
-      if (!imageUrl) {
-        imageUrl = await tryImageGeneration(
-          '/api/ai/v1/images/generations',
-          {},
-          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
-        );
-      }
+      // Fallback: try Quick proxy without auth (pre-authenticated on quick.shopify.io)
+      if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', {}, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
+      if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', {}, { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
 
       if (!imageUrl) throw new Error('All image generation attempts failed');
 
