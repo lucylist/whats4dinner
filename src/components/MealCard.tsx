@@ -27,14 +27,20 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  const tryFetch = async (url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
+  const isOnQuick = window.location.hostname.endsWith('.quick.shopify.io');
+
+  const tryFetch = async (label: string, url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[ImageGen] ${label} → ${res.status}: ${errText.slice(0, 200)}`);
+        return null;
+      }
       const data = await res.json();
       const b64 = data.data?.[0]?.b64_json;
       if (b64) {
@@ -54,7 +60,8 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
         return `data:image/png;base64,${b64}`;
       }
       return data.data?.[0]?.url || null;
-    } catch {
+    } catch (e) {
+      console.warn(`[ImageGen] ${label} → network error:`, e);
       return null;
     }
   };
@@ -69,23 +76,26 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
       let imageUrl: string | null = null;
       const storedKey = getStoredApiKey();
 
-      if (storedKey) {
-        const auth = { Authorization: `Bearer ${storedKey}` };
-
-        if (isShopifyProxyKey(storedKey)) {
-          // Shopify LLM proxy token → call Quick AI proxy with auth
-          if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
-          if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', auth, { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
-          if (!imageUrl) imageUrl = await tryFetch('/api/ai/v1/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
-        } else {
-          // OpenAI API key → call OpenAI directly
-          imageUrl = await tryFetch('https://api.openai.com/v1/images/generations', auth, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
-        }
+      // 1. If user provided an OpenAI key, call OpenAI directly (works everywhere)
+      if (storedKey && !isShopifyProxyKey(storedKey)) {
+        imageUrl = await tryFetch('OpenAI direct', 'https://api.openai.com/v1/images/generations',
+          { Authorization: `Bearer ${storedKey}` },
+          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
+        );
       }
 
-      // Fallback: try Quick proxy without auth (pre-authenticated on quick.shopify.io)
-      if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', {}, { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
-      if (!imageUrl) imageUrl = await tryFetch('/api/ai/images/generations', {}, { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
+      // 2. On Quick: try the proxy (pre-authenticated, no key needed)
+      if (!imageUrl && isOnQuick) {
+        const proxyAuth: Record<string, string> = storedKey && isShopifyProxyKey(storedKey)
+          ? { Authorization: `Bearer ${storedKey}` } : {};
+
+        if (!imageUrl) imageUrl = await tryFetch('Quick dall-e-3', '/api/ai/images/generations', proxyAuth,
+          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
+        if (!imageUrl) imageUrl = await tryFetch('Quick gpt-image-1', '/api/ai/images/generations', proxyAuth,
+          { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
+        if (!imageUrl) imageUrl = await tryFetch('Quick gpt-4o mini image', '/api/ai/images/generations', proxyAuth,
+          { model: 'gpt-4o', prompt, n: 1, size: '1024x1024' });
+      }
 
       if (!imageUrl) throw new Error('All image generation attempts failed');
 
