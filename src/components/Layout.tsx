@@ -60,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
               ) : (
                 <>
                   <Share2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Share</span>
+                  <span>Share</span>
                 </>
               )}
             </button>

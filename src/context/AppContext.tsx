@@ -15,6 +15,7 @@ import { db as firestoreDb } from '../config/firebase';
 import {
   collection,
   doc,
+  getDocs,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -55,6 +56,37 @@ function roomDoc(roomId: string, colName: string, docId: string) {
   return doc(firestoreDb, 'rooms', roomId, colName, docId);
 }
 
+async function migrateLocalStorageToFirestore(roomId: string) {
+  const localMeals = getAllMeals();
+  const localPlan = getCurrentWeeklyPlan();
+  const localInventory = getAllInventoryItems();
+
+  if (localMeals.length === 0 && !localPlan && localInventory.length === 0) return;
+
+  // Check if the room already has data (another family member might have set it up)
+  const existingMeals = await getDocs(roomCollection(roomId, 'meals'));
+  if (existingMeals.size > 0) return;
+
+  console.log(`Migrating ${localMeals.length} meals, ${localInventory.length} inventory items to room ${roomId}...`);
+
+  const writes: Promise<void>[] = [];
+
+  for (const meal of localMeals) {
+    writes.push(setDoc(roomDoc(roomId, 'meals', meal.id), meal));
+  }
+
+  if (localPlan) {
+    writes.push(setDoc(roomDoc(roomId, 'plans', localPlan.id), localPlan));
+  }
+
+  for (const item of localInventory) {
+    writes.push(setDoc(roomDoc(roomId, 'inventory', item.id), item));
+  }
+
+  await Promise.all(writes);
+  console.log('Migration complete!');
+}
+
 export function AppProvider({ children, roomId = null }: AppProviderProps) {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [currentPlan, setCurrentPlanState] = useState<WeeklyPlan | null>(null);
@@ -71,9 +103,11 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     const initData = async () => {
       setIsLoading(true);
 
-      // Use Firestore if we have a room ID
       if (roomId) {
         try {
+          // Migrate existing localStorage data into this room if it's empty
+          await migrateLocalStorageToFirestore(roomId);
+
           unsubs.push(
             onSnapshot(query(roomCollection(roomId, 'meals')), (snapshot) => {
               if (cancelled) return;
