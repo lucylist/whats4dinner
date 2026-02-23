@@ -5,6 +5,7 @@ import { Meal } from '../types';
 import { Tag, Edit, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toTitleCase } from '../utils/storage';
+import { getStoredApiKey } from '../pages/SettingsPage';
 
 interface MealCardProps {
   meal: Meal;
@@ -26,51 +27,72 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Generate AI image via Quick AI proxy (only works on Quick platform)
-  const uploadBase64ToQuick = async (b64: string): Promise<string | null> => {
-    try {
-      const quick = (window as any).quick;
-      if (!quick?.fs) return null;
-      const byteString = atob(b64);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-      const blob = new Blob([ab], { type: 'image/png' });
-      const file = new File([blob], `meal-${Date.now()}.png`, { type: 'image/png' });
-      const result = await quick.fs.uploadFile(file);
-      return result?.files?.[0]?.fullUrl || result?.files?.[0]?.url || null;
-    } catch {
-      return null;
-    }
-  };
-
   const generateAiImage = async (mealName: string) => {
     if (isGeneratingImage) return;
     
     setIsGeneratingImage(true);
+    const prompt = `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, top-down or 45-degree angle, restaurant quality, shallow depth of field, warm natural lighting.`;
+
     try {
+      const storedKey = getStoredApiKey();
+
+      // 1. Try stored OpenAI API key (works anywhere, including GitHub Pages)
+      if (storedKey) {
+        const res = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${storedKey}`,
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt,
+            n: 1,
+            size: '1024x1024',
+            quality: 'standard',
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const url = data.data?.[0]?.url;
+          if (url) {
+            setAiGeneratedImage(url);
+            if (onUpdateImage) onUpdateImage(meal.id, url);
+            return;
+          }
+        }
+      }
+
+      // 2. Try Quick AI proxy (works on quick.shopify.io)
       const response = await fetch('/api/ai/images/generations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt: `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, top-down or 45-degree angle, restaurant quality, shallow depth of field, warm natural lighting.`,
-          n: 1,
-          size: '1024x1024',
-          quality: 'low',
-        }),
+        body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' }),
       });
       
-      if (!response.ok) throw new Error('Quick AI not available');
+      if (!response.ok) throw new Error('No image API available');
       
       const data = await response.json();
       const b64 = data.data?.[0]?.b64_json;
       let imageUrl = data.data?.[0]?.url;
 
       if (b64) {
-        // Upload to Quick file storage so we get a proper URL (avoids huge base64 in Firestore)
-        const hostedUrl = await uploadBase64ToQuick(b64);
-        imageUrl = hostedUrl || `data:image/png;base64,${b64}`;
+        const quick = (window as any).quick;
+        if (quick?.fs) {
+          try {
+            const byteString = atob(b64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            const file = new File([new Blob([ab], { type: 'image/png' })], `meal-${Date.now()}.png`, { type: 'image/png' });
+            const result = await quick.fs.uploadFile(file);
+            imageUrl = result?.files?.[0]?.fullUrl || result?.files?.[0]?.url || `data:image/png;base64,${b64}`;
+          } catch {
+            imageUrl = `data:image/png;base64,${b64}`;
+          }
+        } else {
+          imageUrl = `data:image/png;base64,${b64}`;
+        }
       }
 
       if (!imageUrl) throw new Error('No image returned');
@@ -78,25 +100,6 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
       setAiGeneratedImage(imageUrl);
       if (onUpdateImage) onUpdateImage(meal.id, imageUrl);
     } catch {
-      // Quick AI not available (GitHub Pages or local dev) — use stock food photo
-      try {
-        const query = encodeURIComponent(mealName.replace(/[^a-zA-Z\s]/g, ''));
-        const stockUrl = `https://loremflickr.com/600/400/${query},food,dish`;
-
-        const ok = await new Promise<boolean>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve(img.naturalWidth > 1);
-          img.onerror = () => resolve(false);
-          img.src = stockUrl;
-          setTimeout(() => resolve(false), 6000);
-        });
-
-        if (ok) {
-          setAiGeneratedImage(stockUrl);
-          if (onUpdateImage) onUpdateImage(meal.id, stockUrl);
-          return;
-        }
-      } catch { /* fall through */ }
       setImageError(true);
     } finally {
       setIsGeneratingImage(false);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, Calendar, Settings, Refrigerator, Share2, Check } from 'lucide-react';
+import { ChefHat, Calendar, Settings, Refrigerator, Share2, Check, Cog } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -49,25 +49,34 @@ export default function Layout({ children }: LayoutProps) {
             <ChefHat className="w-8 h-8" />
             What's for dinner?
           </h1>
-          {roomId && (
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-              title="Share with family"
+          <div className="flex items-center gap-1">
+            {roomId && (
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                title="Share with family"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-500" />
+                    <span className="text-green-600">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    <span>Share</span>
+                  </>
+                )}
+              </button>
+            )}
+            <Link
+              to="/settings"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Settings"
             >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-500" />
-                  <span className="text-green-600">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4" />
-                  <span>Share</span>
-                </>
-              )}
-            </button>
-          )}
+              <Cog className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </header>
 
