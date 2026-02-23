@@ -245,9 +245,6 @@ export default function MealDetail() {
           {/* Name and Prep Time */}
           <div className="flex items-end gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Meal name
-              </label>
               <input
                 type="text"
                 value={formData.name}
