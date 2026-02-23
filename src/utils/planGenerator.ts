@@ -65,10 +65,16 @@ export function generateWeeklyPlan(
   // Calculate how many meal days we need
   const mealDaysNeeded = totalDays - preferences.eatingOutDays - preferences.leftoverDays;
   
-  // Select meals (with repetition if needed)
+  // Select meals — avoid repeats within each 7-day window
   const selectedMeals: Meal[] = [];
+  const mealsPerWeek = Math.min(mealDaysNeeded, 7 - preferences.eatingOutDays - preferences.leftoverDays) || mealDaysNeeded;
+  
   for (let i = 0; i < mealDaysNeeded; i++) {
-    selectedMeals.push(shuffledMeals[i % shuffledMeals.length]);
+    const windowStart = Math.max(0, i - mealsPerWeek + 1);
+    const recentIds = new Set(selectedMeals.slice(windowStart, i).map(m => m.id));
+    const unused = shuffledMeals.filter(m => !recentIds.has(m.id));
+    const pool = unused.length > 0 ? shuffleArray(unused) : shuffleArray(shuffledMeals);
+    selectedMeals.push(pool[0]);
   }
   
   // Determine which days are eating out
