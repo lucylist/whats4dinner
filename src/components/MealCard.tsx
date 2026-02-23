@@ -76,7 +76,7 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
       let imageUrl: string | null = null;
       const storedKey = getStoredApiKey();
 
-      // 1. If user provided an OpenAI key, call OpenAI directly (works everywhere)
+      // 1. OpenAI key (sk-...) → call OpenAI directly, works everywhere
       if (storedKey && !isShopifyProxyKey(storedKey)) {
         imageUrl = await tryFetch('OpenAI direct', 'https://api.openai.com/v1/images/generations',
           { Authorization: `Bearer ${storedKey}` },
@@ -84,20 +84,38 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
         );
       }
 
-      // 2. On Quick: try the proxy (pre-authenticated, no key needed)
+      // 2. On Quick: try every combination of auth + model + endpoint
       if (!imageUrl && isOnQuick) {
-        const proxyAuth: Record<string, string> = storedKey && isShopifyProxyKey(storedKey)
-          ? { Authorization: `Bearer ${storedKey}` } : {};
+        const authVariants: [string, Record<string, string>][] = [
+          ['not-needed', { Authorization: 'Bearer not-needed' }],
+          ['no-auth', {}],
+        ];
+        if (storedKey && isShopifyProxyKey(storedKey)) {
+          authVariants.unshift(['shopify-token', { Authorization: `Bearer ${storedKey}` }]);
+        }
 
-        if (!imageUrl) imageUrl = await tryFetch('Quick dall-e-3', '/api/ai/images/generations', proxyAuth,
-          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' });
-        if (!imageUrl) imageUrl = await tryFetch('Quick gpt-image-1', '/api/ai/images/generations', proxyAuth,
-          { model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'low' });
-        if (!imageUrl) imageUrl = await tryFetch('Quick gpt-4o mini image', '/api/ai/images/generations', proxyAuth,
-          { model: 'gpt-4o', prompt, n: 1, size: '1024x1024' });
+        const models = ['dall-e-3', 'gpt-image-1'];
+        const endpoints = ['/api/ai/images/generations'];
+
+        for (const endpoint of endpoints) {
+          for (const [authLabel, authHeaders] of authVariants) {
+            for (const model of models) {
+              if (imageUrl) break;
+              const body = model === 'gpt-image-1'
+                ? { model, prompt, n: 1, size: '1024x1024', quality: 'low' }
+                : { model, prompt, n: 1, size: '1024x1024', quality: 'standard' };
+              imageUrl = await tryFetch(`Quick ${model} (${authLabel})`, endpoint, authHeaders, body);
+            }
+            if (imageUrl) break;
+          }
+          if (imageUrl) break;
+        }
       }
 
-      if (!imageUrl) throw new Error('All image generation attempts failed');
+      if (!imageUrl) {
+        console.error('[ImageGen] All attempts failed for:', mealName);
+        throw new Error('All image generation attempts failed');
+      }
 
       setAiGeneratedImage(imageUrl);
       if (onUpdateImage) onUpdateImage(meal.id, imageUrl);
