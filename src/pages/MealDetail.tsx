@@ -257,7 +257,7 @@ export default function MealDetail() {
               <label className="block text-sm font-medium text-gray-500 mb-1 text-left">
                 Prep time
               </label>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center">
                 <input
                   type="number"
                   value={formData.prepTime}
@@ -265,7 +265,7 @@ export default function MealDetail() {
                   className="text-gray-700 w-12 border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1 transition-colors text-left"
                   placeholder="30"
                 />
-                <span className="text-gray-500 text-sm">min</span>
+                <span className="text-gray-500 text-sm ml-0.5">min</span>
               </div>
             </div>
           </div>
