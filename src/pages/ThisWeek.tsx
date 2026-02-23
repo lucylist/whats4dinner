@@ -3,11 +3,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import { Calendar, Edit, RefreshCw, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
+import { Calendar, Edit, RefreshCw, ChevronLeft, ChevronRight, GripVertical, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
 import { DayPlan, Meal } from '../types';
 import { toTitleCase, generateId, extractTagsFromName } from '../utils/storage';
+
+interface LeftoverPickerState {
+  dayDate: string;
+  dayIndex: number;
+  pendingDays: DayPlan[];
+}
 
 export default function ThisWeek() {
   const { currentPlan, getMeal, setSelectedMealId, setCurrentPlan, meals, updateMeal, addMeal } = useApp();
@@ -17,6 +23,7 @@ export default function ThisWeek() {
   const [dragOverDay, setDragOverDay] = useState<string | null>(null);
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [editedMealName, setEditedMealName] = useState('');
+  const [leftoverPicker, setLeftoverPicker] = useState<LeftoverPickerState | null>(null);
   
   if (!currentPlan) {
     return (
@@ -209,7 +216,6 @@ export default function ThisWeek() {
         const sourceDay = { ...newDays[sourceIndex] };
         const targetDay = { ...newDays[targetIndex] };
         
-        // Swap the meal-related properties (keep dates the same)
         newDays[sourceIndex] = {
           ...sourceDay,
           mealId: targetDay.mealId,
@@ -225,24 +231,34 @@ export default function ThisWeek() {
           customNote: sourceDay.customNote,
         };
         
-        // Relink leftover days to the meal from the day before them
+        // Relink leftover days after the swap
+        let pickerNeededIdx: number | null = null;
         for (let i = 0; i < newDays.length; i++) {
-          if (newDays[i].type === 'leftovers' && i > 0) {
-            const prevDay = newDays[i - 1];
-            if (prevDay.type === 'meal' && prevDay.mealId) {
-              newDays[i] = {
-                ...newDays[i],
-                mealId: prevDay.mealId,
-                leftoverFromDate: prevDay.date,
-              };
-            } else if (prevDay.type === 'leftovers' && prevDay.mealId) {
-              newDays[i] = {
-                ...newDays[i],
-                mealId: prevDay.mealId,
-                leftoverFromDate: prevDay.leftoverFromDate,
-              };
+          if (newDays[i].type !== 'leftovers') continue;
+
+          // Walk backwards to find the nearest meal, skipping eating out days
+          let linked = false;
+          for (let back = i - 1; back >= 0; back--) {
+            const prev = newDays[back];
+            if (prev.type === 'meal' && prev.mealId) {
+              newDays[i] = { ...newDays[i], mealId: prev.mealId, leftoverFromDate: prev.date };
+              linked = true;
+              break;
             }
+            if (prev.type === 'eating_out') continue; // skip and keep looking
+            break; // anything else (skip, empty, another leftover), stop scanning
           }
+
+          if (!linked && pickerNeededIdx === null) {
+            pickerNeededIdx = i;
+          }
+        }
+
+        if (pickerNeededIdx !== null) {
+          setLeftoverPicker({ dayDate: newDays[pickerNeededIdx].date, dayIndex: pickerNeededIdx, pendingDays: newDays });
+          setDraggedDay(null);
+          setDragOverDay(null);
+          return;
         }
         
         setCurrentPlan({
@@ -255,6 +271,38 @@ export default function ThisWeek() {
     
     setDraggedDay(null);
     setDragOverDay(null);
+  };
+
+  const handlePickLeftoverMeal = (mealId: string) => {
+    if (!leftoverPicker || !currentPlan) return;
+    const { dayIndex, pendingDays } = leftoverPicker;
+    const meal = getMeal(mealId);
+    const newDays = [...pendingDays];
+    newDays[dayIndex] = {
+      ...newDays[dayIndex],
+      mealId,
+      leftoverFromDate: meal ? newDays.find(d => d.mealId === mealId && d.type === 'meal')?.date || null : null,
+    };
+    setCurrentPlan({
+      ...currentPlan,
+      days: newDays,
+      modifiedAt: new Date().toISOString(),
+    });
+    setLeftoverPicker(null);
+  };
+
+  const getWeekMeals = (): Meal[] => {
+    if (!currentPlan) return [];
+    const seen = new Set<string>();
+    const weekMeals: Meal[] = [];
+    for (const day of currentPlan.days) {
+      if (day.type === 'meal' && day.mealId && !seen.has(day.mealId)) {
+        seen.add(day.mealId);
+        const meal = getMeal(day.mealId);
+        if (meal) weekMeals.push(meal);
+      }
+    }
+    return weekMeals;
   };
   
   return (
@@ -488,6 +536,66 @@ export default function ThisWeek() {
           })}
         </div>
       </div>
+
+      {/* Leftover meal picker modal */}
+      {leftoverPicker && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Pick leftover meal</h3>
+              <button
+                onClick={() => {
+                  // Cancel: just save without relinking
+                  if (currentPlan) {
+                    setCurrentPlan({
+                      ...currentPlan,
+                      days: leftoverPicker.pendingDays,
+                      modifiedAt: new Date().toISOString(),
+                    });
+                  }
+                  setLeftoverPicker(null);
+                }}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Which meal are you having leftovers of on{' '}
+              <span className="font-medium text-gray-700">
+                {format(parseISO(leftoverPicker.dayDate), 'EEEE')}
+              </span>?
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {getWeekMeals().map(meal => {
+                const hasError = !meal.imageUrl;
+                return (
+                  <button
+                    key={meal.id}
+                    onClick={() => handlePickLeftoverMeal(meal.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors text-left"
+                  >
+                    {meal.imageUrl ? (
+                      <img src={meal.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
+                        style={{ backgroundColor: `hsl(${meal.name.length * 40}, 60%, 55%)` }}
+                      >
+                        {meal.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="font-medium text-gray-800 truncate">{toTitleCase(meal.name)}</span>
+                  </button>
+                );
+              })}
+              {getWeekMeals().length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No meals planned this week</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
