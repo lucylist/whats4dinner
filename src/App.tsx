@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 import MealsLibrary from './pages/MealsLibrary';
@@ -55,12 +55,11 @@ function App() {
 
   return (
     <AppProvider roomId={roomId}>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <HashRouter>
         <Layout>
           <Routes>
             <Route path="/" element={<Navigate to="/calendar" replace />} />
             <Route path="/calendar" element={<ThisWeek />} />
-            <Route path="/this-week" element={<Navigate to="/calendar" replace />} />
             <Route path="/meals" element={<MealsLibrary />} />
             <Route path="/meal-detail" element={<MealDetail />} />
             <Route path="/meal-form" element={<MealForm />} />
@@ -72,7 +71,7 @@ function App() {
             <Route path="/recommendations" element={<Recommendations />} />
           </Routes>
         </Layout>
-      </BrowserRouter>
+      </HashRouter>
     </AppProvider>
   );
 }
