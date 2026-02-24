@@ -12,6 +12,39 @@ import {
 } from '../utils/storage';
 import { getQuickDB } from '../utils/quick';
 import { db as firestoreDb } from '../config/firebase';
+
+function qCol(name: string, roomId: string | null) {
+  return roomId ? `${name}_${roomId}` : name;
+}
+
+async function migrateQuickDBToRoom(qdb: any, roomId: string) {
+  try {
+    const roomMeals = await qdb.collection(qCol('meals', roomId)).find();
+    if (roomMeals && roomMeals.length > 0) return;
+
+    const flatMeals = await qdb.collection('meals').find();
+    if (!flatMeals || flatMeals.length === 0) return;
+
+    for (const meal of flatMeals) {
+      await qdb.collection(qCol('meals', roomId)).create(meal);
+    }
+    const flatPlans = await qdb.collection('plans').find();
+    if (flatPlans) {
+      for (const plan of flatPlans) {
+        await qdb.collection(qCol('plans', roomId)).create(plan);
+      }
+    }
+    const flatInv = await qdb.collection('inventory').find();
+    if (flatInv) {
+      for (const item of flatInv) {
+        await qdb.collection(qCol('inventory', roomId)).create(item);
+      }
+    }
+    console.log('Migrated Quick DB data to room:', roomId);
+  } catch (e) {
+    console.log('Quick DB migration failed (non-fatal):', e);
+  }
+}
 import {
   collection,
   doc,
@@ -153,11 +186,14 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
       setQuickDB(qdb);
 
       if (qdb) {
+        if (roomId) {
+          await migrateQuickDBToRoom(qdb, roomId);
+        }
         try {
           const [dbMeals, dbPlans, dbInventory] = await Promise.all([
-            qdb.collection('meals').find(),
-            qdb.collection('plans').find(),
-            qdb.collection('inventory').find()
+            qdb.collection(qCol('meals', roomId)).find(),
+            qdb.collection(qCol('plans', roomId)).find(),
+            qdb.collection(qCol('inventory', roomId)).find()
           ]);
           if (!cancelled) {
             setMeals(dbMeals || []);
@@ -227,7 +263,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('meals').create(meal); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('meals', roomId)).create(meal); } catch (e) { /* noop */ }
     }
 
     setMeals(prev => [...prev, meal]);
@@ -244,7 +280,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('meals').update(meal.id, meal); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('meals', roomId)).update(meal.id, meal); } catch (e) { /* noop */ }
     }
 
     setMeals(prev => prev.map(m => m.id === meal.id ? meal : m));
@@ -261,7 +297,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('meals').delete(mealId); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('meals', roomId)).delete(mealId); } catch (e) { /* noop */ }
     }
 
     setMeals(prev => prev.filter(m => m.id !== mealId));
@@ -282,9 +318,10 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
     if (quickDB && plan) {
       try {
-        const existing = await quickDB.collection('plans').find();
-        if (existing?.length > 0) await quickDB.collection('plans').update(existing[0].id, plan);
-        else await quickDB.collection('plans').create(plan);
+        const col = qCol('plans', roomId);
+        const existing = await quickDB.collection(col).find();
+        if (existing?.length > 0) await quickDB.collection(col).update(existing[0].id, plan);
+        else await quickDB.collection(col).create(plan);
       } catch (e) { /* noop */ }
     }
 
@@ -303,9 +340,10 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
     if (quickDB) {
       try {
-        const existing = await quickDB.collection('plans').find();
-        if (existing?.length > 0) await quickDB.collection('plans').update(existing[0].id, plan);
-        else await quickDB.collection('plans').create(plan);
+        const col = qCol('plans', roomId);
+        const existing = await quickDB.collection(col).find();
+        if (existing?.length > 0) await quickDB.collection(col).update(existing[0].id, plan);
+        else await quickDB.collection(col).create(plan);
       } catch (e) { /* noop */ }
     }
 
@@ -324,7 +362,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('inventory').create(item); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('inventory', roomId)).create(item); } catch (e) { /* noop */ }
     }
 
     setInventory(prev => [...prev, item]);
@@ -341,7 +379,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('inventory').update(item.id, item); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('inventory', roomId)).update(item.id, item); } catch (e) { /* noop */ }
     }
 
     setInventory(prev => prev.map(i => i.id === item.id ? item : i));
@@ -358,7 +396,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     }
 
     if (quickDB) {
-      try { await quickDB.collection('inventory').delete(itemId); } catch (e) { /* noop */ }
+      try { await quickDB.collection(qCol('inventory', roomId)).delete(itemId); } catch (e) { /* noop */ }
     }
 
     setInventory(prev => prev.filter(i => i.id !== itemId));
