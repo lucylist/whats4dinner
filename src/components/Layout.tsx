@@ -52,12 +52,12 @@ export default function Layout({ children }: LayoutProps) {
     <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
       {/* Header — fixed top, opaque, full width */}
       <header className="shrink-0 bg-forest-800 border-b border-forest-500/50 z-40 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 pt-1 pb-3 sm:pt-1 sm:pb-4 flex items-center justify-center relative">
-          <Link to="/calendar" className="group -mt-2">
+        <div className="max-w-7xl mx-auto px-4 pt-0 pb-2 sm:pb-3 flex items-center justify-center relative">
+          <Link to="/calendar" className="group -mt-4 sm:-mt-5">
             <img
               src={`${import.meta.env.BASE_URL || '/'}images/horizontal-logo.png`}
               alt="What's for dinner?"
-              className="h-[5.5rem] sm:h-[6.875rem] w-auto"
+              className="h-24 sm:h-[7.5rem] w-auto"
             />
           </Link>
           {roomId && (
