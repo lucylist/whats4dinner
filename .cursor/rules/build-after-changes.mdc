@@ -1,20 +1,26 @@
 ---
-description: Always rebuild dist and push to GitHub after code changes
+description: Always build, commit, push to GitHub, and deploy to Quick after code changes
 alwaysApply: true
 ---
 
 # Build and Deploy After Changes
 
-After making code changes to this project, always do both of these steps:
+After making code changes to this project, always do ALL of these steps:
 
-1. **Rebuild dist** for Quick deployment:
+1. **Build** the project:
 ```bash
 npm run build
 ```
 
-2. **Commit and push to GitHub** so GitHub Pages auto-deploys:
+2. **Commit and push to GitHub** (triggers GitHub Pages auto-deploy):
 ```bash
-git add -A && git commit -m "description of changes" && git push
+git add -A && git commit -m "description of changes" && git push origin main
 ```
 
-Always do both steps after every code change. Never skip either one.
+3. **Deploy to Quick** (requires manual confirmation -- prompt the user to run in their terminal):
+```bash
+quick deploy dist whats4dinner
+```
+Note: Quick deploy requires interactive confirmation and cannot be automated. Always remind the user to run this command in their terminal after pushing to GitHub.
+
+Never skip any of these steps. Every code change must be built, pushed, and deployed.

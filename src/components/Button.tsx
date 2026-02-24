@@ -15,7 +15,7 @@ export default function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const baseClass = 'font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClass = 'font-sans font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
     primary: 'bg-gold text-forest-900 hover:bg-gold-light active:bg-gold-dark font-semibold',

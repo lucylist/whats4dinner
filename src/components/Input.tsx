@@ -24,7 +24,7 @@ export default function Input({
       
       <input
         className={`
-          w-full px-3 py-2 border rounded-lg bg-forest-800 text-cream-100
+          w-full px-3 py-2 border rounded-xl bg-forest-800 text-cream-100
           focus:ring-2 focus:ring-gold focus:border-gold
           disabled:bg-forest-900 disabled:cursor-not-allowed
           placeholder:text-cream-500
