@@ -49,9 +49,9 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-forest-800">
-      {/* Header */}
-      <header className="sticky top-0 w-screen bg-forest-800/95 backdrop-blur-sm border-b border-forest-500/50 z-40">
+    <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
+      {/* Header — fixed top, opaque, full width */}
+      <header className="shrink-0 bg-forest-800 border-b border-forest-500/50 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/calendar" className="group">
             <img
@@ -84,15 +84,18 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl w-full mx-auto px-4 pb-28">
-        {children}
+      {/* Scrollable content area — only this section scrolls */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-7xl w-full mx-auto px-4 pb-6">
+          {children}
+        </div>
       </main>
 
       {/* Shadow gradient above nav */}
-      <div className="fixed bottom-20 left-0 right-0 h-12 bg-gradient-to-t from-black/50 to-transparent z-40 pointer-events-none" />
+      <div className="shrink-0 h-3 bg-gradient-to-t from-black/40 to-transparent -mt-3 relative z-10 pointer-events-none" />
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800 border-t border-forest-500/50 z-50">
+      {/* Bottom Navigation — fixed bottom, full width */}
+      <nav className="shrink-0 bg-forest-800 border-t border-forest-500/50 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-around items-center h-20">
             <Link to="/calendar" className={navLinkClass('/calendar')}>

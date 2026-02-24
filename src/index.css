@@ -42,13 +42,14 @@ body {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 html {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
-  overflow-y: scroll;
+  overflow: hidden;
 }
 
 /* Dark scrollbar */
