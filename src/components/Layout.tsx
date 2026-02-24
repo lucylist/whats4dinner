@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Share2, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -29,6 +29,38 @@ export default function Layout({ children }: LayoutProps) {
       : "h-10 w-auto mb-0.5 object-contain brightness-75";
   };
 
+  // Pull-to-refresh
+  const mainRef = useRef<HTMLElement>(null);
+  const touchStartY = useRef<number>(0);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullStart = useCallback((e: React.TouchEvent) => {
+    if (mainRef.current && mainRef.current.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    } else {
+      touchStartY.current = 0;
+    }
+  }, []);
+
+  const handlePullMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartY.current || isRefreshing) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0 && mainRef.current && mainRef.current.scrollTop === 0) {
+      setPullDistance(delta * 0.4);
+    }
+  }, [isRefreshing]);
+
+  const handlePullEnd = useCallback(() => {
+    if (pullDistance > 60 && !isRefreshing) {
+      setIsRefreshing(true);
+      setPullDistance(60);
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      setPullDistance(0);
+    }
+  }, [pullDistance, isRefreshing]);
+
   const handleShare = async () => {
     const base = import.meta.env.BASE_URL || '/';
     const url = `${window.location.origin}${base}?family=${roomId}`;
@@ -52,12 +84,12 @@ export default function Layout({ children }: LayoutProps) {
     <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
       {/* Header — fixed top, opaque, full width */}
       <header className="shrink-0 bg-forest-800 border-b border-forest-500/50 z-40 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 pt-0 pb-2 sm:pb-3 flex items-center justify-center relative">
-          <Link to="/calendar" className="group -mt-4 sm:-mt-5">
+        <div className="max-w-7xl mx-auto px-1 sm:px-4 pt-0 pb-2 sm:pb-3 flex items-center justify-center relative">
+          <Link to="/calendar" className="group -mt-3 sm:-mt-5">
             <img
               src={`${import.meta.env.BASE_URL || '/'}images/horizontal-logo.png`}
               alt="What's for dinner?"
-              className="h-24 sm:h-[7.5rem] w-auto"
+              className="w-full max-w-[100vw] sm:w-auto sm:h-[7.5rem] h-auto"
             />
           </Link>
           {roomId && (
@@ -84,8 +116,24 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Scrollable content area — only this section scrolls */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* Scrollable content area — only this section scrolls, with pull-to-refresh */}
+      <main
+        ref={mainRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        onTouchStart={handlePullStart}
+        onTouchMove={handlePullMove}
+        onTouchEnd={handlePullEnd}
+      >
+        {pullDistance > 0 && (
+          <div
+            className="flex items-center justify-center transition-opacity"
+            style={{ height: `${Math.min(pullDistance, 80)}px`, opacity: Math.min(pullDistance / 60, 1) }}
+          >
+            <div className={`w-6 h-6 border-2 border-gold border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{ transform: isRefreshing ? undefined : `rotate(${pullDistance * 3}deg)` }}
+            />
+          </div>
+        )}
         <div className="max-w-7xl w-full mx-auto px-4 pb-6">
           {children}
         </div>
