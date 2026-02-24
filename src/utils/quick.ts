@@ -1,32 +1,34 @@
-// Quick platform client for Shopify internal hosting
-// These APIs are only available when deployed to quick.shopify.io
+declare global {
+  interface Window {
+    quick?: any;
+  }
+}
 
-// Check if running on Quick platform
 export const isQuickPlatform = (): boolean => {
   return typeof window !== 'undefined' && 
     (window.location.hostname.endsWith('.quick.shopify.io') || 
      window.location.hostname === 'localhost');
 };
 
-// Lazy load Quick client only when on the platform
-let quickClient: any = null;
+function waitForQuick(timeoutMs = 3000): Promise<any | null> {
+  if (window.quick) return Promise.resolve(window.quick);
+  if (!isQuickPlatform()) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (window.quick) return resolve(window.quick);
+      if (Date.now() - start > timeoutMs) return resolve(null);
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
 
 export const getQuickClient = async () => {
-  if (quickClient) return quickClient;
-  
-  try {
-    // Use indirect eval import so Vite doesn't try to resolve this at build time.
-    // This path only exists on the Quick hosting platform.
-    const importPath = '/client/quick.js';
-    quickClient = await (new Function('p', 'return import(p)'))(importPath);
-    return quickClient;
-  } catch (e) {
-    console.log('Quick client not available - running locally without Quick APIs');
-    return null;
-  }
+  return waitForQuick();
 };
 
-// Convenience functions
 export const getQuickDB = async () => {
   const quick = await getQuickClient();
   return quick?.db || null;

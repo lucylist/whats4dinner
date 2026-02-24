@@ -104,9 +104,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     const unsubs: Unsubscribe[] = [];
     let cancelled = false;
 
-    const initData = async () => {
-      setIsLoading(true);
-
+    const initDataInner = async () => {
       if (roomId) {
         const firestoreOk = await testFirestoreConnectivity(roomId);
 
@@ -145,14 +143,12 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
           );
 
           setUseFirestore(true);
-          setIsLoading(false);
           return;
         } else {
           console.log('Firestore not reachable, falling back...');
         }
       }
 
-      // Try Quick DB
       const qdb = await getQuickDB();
       setQuickDB(qdb);
 
@@ -177,6 +173,23 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
           if (!cancelled) loadFromLocalStorage();
         }
       } else {
+        if (!cancelled) loadFromLocalStorage();
+      }
+    };
+
+    const initData = async () => {
+      setIsLoading(true);
+
+      const timeout = new Promise<void>((resolve) => setTimeout(() => {
+        console.warn('Init timed out after 8s – falling back to localStorage');
+        if (!cancelled) loadFromLocalStorage();
+        resolve();
+      }, 8000));
+
+      try {
+        await Promise.race([initDataInner(), timeout]);
+      } catch (e) {
+        console.error('Init error:', e);
         if (!cancelled) loadFromLocalStorage();
       }
 
@@ -353,10 +366,10 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-forest-800">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin w-8 h-8 border-4 border-gold border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-cream-400 text-sm">Loading...</p>
         </div>
       </div>
     );
