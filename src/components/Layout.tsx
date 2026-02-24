@@ -51,7 +51,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-forest-800">
       {/* Header */}
-      <header className="sticky top-0 bg-forest-800/95 backdrop-blur-sm border-b border-forest-500/50 z-40">
+      <header className="sticky top-0 w-screen bg-forest-800/95 backdrop-blur-sm border-b border-forest-500/50 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/calendar" className="group">
             <img
@@ -88,8 +88,11 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
+      {/* Shadow gradient above nav */}
+      <div className="fixed bottom-20 left-0 right-0 h-12 bg-gradient-to-t from-black/50 to-transparent z-40 pointer-events-none" />
+
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800/95 backdrop-blur-sm border-t border-forest-500/50 z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
+      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800 border-t border-forest-500/50 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-around items-center h-20">
             <Link to="/calendar" className={navLinkClass('/calendar')}>

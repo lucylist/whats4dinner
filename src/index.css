@@ -48,6 +48,7 @@ body {
 html {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  overflow-y: scroll;
 }
 
 /* Dark scrollbar */
