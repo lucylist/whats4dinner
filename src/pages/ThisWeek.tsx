@@ -14,6 +14,59 @@ interface LeftoverPickerState {
   pendingDays: DayPlan[];
 }
 
+function getPlaceholderStyle(mealName: string) {
+  const hues = [25, 35, 140, 210, 280, 350];
+  const seed = mealName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hue = hues[seed % hues.length];
+  const bg = `hsl(${hue}, 30%, 22%)`;
+  const initials = mealName.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?';
+  return { bg, initials };
+}
+
+function MealThumbnail({ meal, size = 'md' }: { meal: { name: string; imageUrl?: string }; size?: 'sm' | 'md' }) {
+  const [hasError, setHasError] = React.useState(false);
+  const placeholder = getPlaceholderStyle(meal.name);
+  const sizeClass = size === 'sm' ? 'w-10 h-10 rounded-lg' : 'w-14 h-14 rounded-xl';
+
+  React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
+
+  if (meal.imageUrl && !hasError) {
+    return (
+      <img
+        src={meal.imageUrl}
+        alt={meal.name}
+        className={`${sizeClass} object-cover flex-shrink-0 border border-forest-500/40`}
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClass} flex items-center justify-center flex-shrink-0 border border-forest-500/40`}
+      style={{ backgroundColor: placeholder.bg }}
+    >
+      <span className="text-cream-300/60 text-xs font-bold">{placeholder.initials}</span>
+    </div>
+  );
+}
+
+function DesktopMealImage({ meal }: { meal: { name: string; imageUrl?: string } }) {
+  const [hasError, setHasError] = React.useState(false);
+  React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
+  if (!meal.imageUrl || hasError) {
+    const p = getPlaceholderStyle(meal.name);
+    return (
+      <div className="aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: p.bg }}>
+        <span className="text-cream-300/30 text-4xl font-serif font-bold">{p.initials}</span>
+      </div>
+    );
+  }
+  return (
+    <img src={meal.imageUrl} alt={meal.name} className="aspect-[4/3] w-full object-cover" onError={() => setHasError(true)} />
+  );
+}
+
 export default function ThisWeek() {
   const { currentPlan, getMeal, setSelectedMealId, setCurrentPlan, meals, updateMeal, addMeal } = useApp();
   const navigate = useNavigate();
@@ -110,59 +163,6 @@ export default function ThisWeek() {
     return date.toDateString() === today.toDateString();
   };
   
-  const getPlaceholderStyle = (mealName: string) => {
-    const hues = [25, 35, 140, 210, 280, 350];
-    const seed = mealName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue = hues[seed % hues.length];
-    const bg = `hsl(${hue}, 30%, 22%)`;
-    const initials = mealName.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?';
-    return { bg, initials };
-  };
-  
-  const MealThumbnail = ({ meal, size = 'md' }: { meal: { name: string; imageUrl?: string }; size?: 'sm' | 'md' }) => {
-    const [hasError, setHasError] = React.useState(false);
-    const placeholder = getPlaceholderStyle(meal.name);
-    const sizeClass = size === 'sm' ? 'w-10 h-10 rounded-lg' : 'w-14 h-14 rounded-xl';
-    
-    React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
-    
-    if (meal.imageUrl && !hasError) {
-      return (
-        <img
-          src={meal.imageUrl}
-          alt={meal.name}
-          className={`${sizeClass} object-cover flex-shrink-0 border border-forest-500/40`}
-          onError={() => setHasError(true)}
-        />
-      );
-    }
-    
-    return (
-      <div 
-        className={`${sizeClass} flex items-center justify-center flex-shrink-0 border border-forest-500/40`}
-        style={{ backgroundColor: placeholder.bg }}
-      >
-        <span className="text-cream-300/60 text-xs font-bold">{placeholder.initials}</span>
-      </div>
-    );
-  };
-  
-  const DesktopMealImage = ({ meal }: { meal: { name: string; imageUrl?: string } }) => {
-    const [hasError, setHasError] = React.useState(false);
-    React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
-    if (!meal.imageUrl || hasError) {
-      const p = getPlaceholderStyle(meal.name);
-      return (
-        <div className="aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: p.bg }}>
-          <span className="text-cream-300/30 text-4xl font-serif font-bold">{p.initials}</span>
-        </div>
-      );
-    }
-    return (
-      <img src={meal.imageUrl} alt={meal.name} className="aspect-[4/3] w-full object-cover" onError={() => setHasError(true)} />
-    );
-  };
-
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, dayDate: string) => {
     setDraggedDay(dayDate);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Meal, WeeklyPlan, InventoryItem } from '../types';
 import {
   getAllMeals,
@@ -128,7 +128,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [quickDB, setQuickDB] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [firestoreCtx, setFirestoreCtx] = useState<any>(null);
+  const firestoreRef = useRef<any>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -206,7 +206,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
           ]);
           if (result) {
             unsubs.push(...result.unsubs);
-            if (!cancelled) setFirestoreCtx(result.fb);
+            if (!cancelled) firestoreRef.current = result.fb;
             if (!cancelled) setIsLoading(false);
             return;
           }
@@ -229,19 +229,19 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
   // --- Firestore write helpers ---
   const fsWrite = async (colName: string, docId: string, data: any, merge = false) => {
-    if (!firestoreCtx || !roomId) return false;
+    const fb = firestoreRef.current;
+    if (!fb || !roomId) return false;
     try {
-      const { db, setDoc, doc } = firestoreCtx;
-      await setDoc(doc(db, 'rooms', roomId, colName, docId), data, merge ? { merge: true } : {});
+      await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, colName, docId), data, merge ? { merge: true } : {});
       return true;
     } catch { return false; }
   };
 
   const fsDelete = async (colName: string, docId: string) => {
-    if (!firestoreCtx || !roomId) return false;
+    const fb = firestoreRef.current;
+    if (!fb || !roomId) return false;
     try {
-      const { db, deleteDoc, doc } = firestoreCtx;
-      await deleteDoc(doc(db, 'rooms', roomId, colName, docId));
+      await fb.deleteDoc(fb.doc(fb.db, 'rooms', roomId, colName, docId));
       return true;
     } catch { return false; }
   };
