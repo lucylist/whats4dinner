@@ -174,12 +174,11 @@ export default function MealDetail() {
   return (
     <div className="min-h-full -mx-4 px-4 pt-6 pb-24" style={{
       backgroundImage: `
-        linear-gradient(45deg, rgba(30,55,30,0.4) 25%, transparent 25%, transparent 75%, rgba(30,55,30,0.4) 75%),
-        linear-gradient(45deg, rgba(30,55,30,0.4) 25%, transparent 25%, transparent 75%, rgba(30,55,30,0.4) 75%)
+        linear-gradient(0deg, rgba(62,100,62,0.45) 50%, transparent 50%),
+        linear-gradient(90deg, rgba(62,100,62,0.45) 50%, transparent 50%)
       `,
-      backgroundSize: '24px 24px',
-      backgroundPosition: '0 0, 12px 12px',
-      backgroundColor: '#1f3a1f'
+      backgroundSize: '28px 28px',
+      backgroundColor: '#1e3a1e'
     }}>
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -196,7 +195,7 @@ export default function MealDetail() {
       </div>
       
       {/* Content */}
-      <div className="bg-forest-700 rounded-2xl border border-forest-500/60 overflow-hidden">
+      <div className="bg-forest-700 rounded-2xl border border-forest-500/60 overflow-hidden shadow-xl shadow-black/40">
         {/* Image */}
         {displayImage ? (
           <img src={displayImage} alt={formData.name} className="w-full h-64 object-cover" />
