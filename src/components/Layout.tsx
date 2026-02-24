@@ -25,8 +25,8 @@ export default function Layout({ children }: LayoutProps) {
 
   const navIconClass = (path: string) => {
     return isActive(path)
-      ? "w-11 h-11 mb-0.5 object-contain"
-      : "w-11 h-11 mb-0.5 object-contain brightness-75";
+      ? "w-9 h-9 mb-0.5 object-contain"
+      : "w-9 h-9 mb-0.5 object-contain brightness-75";
   };
 
   const handleShare = async () => {
@@ -91,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-forest-800/95 backdrop-blur-sm border-t border-forest-500/50 z-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-around items-center h-16">
+          <div className="flex justify-around items-center h-[4.5rem]">
             <Link to="/calendar" className={navLinkClass('/calendar')}>
               <img src={`${basePath}images/nav-icon-calendar.png`} alt="" className={navIconClass('/calendar')} />
               <span className="text-[10px] sm:text-xs font-medium tracking-wide">Calendar</span>
