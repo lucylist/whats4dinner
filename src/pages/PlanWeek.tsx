@@ -130,12 +130,12 @@ export default function PlanWeek() {
               <select
                 value={durationType}
                 onChange={handleDurationTypeChange}
-                className="appearance-none bg-forest-600 text-cream-200 text-sm font-medium pl-3 pr-7 py-1 rounded-lg border border-forest-300 focus:ring-2 focus:ring-gold focus:border-gold cursor-pointer"
+                className="appearance-none bg-forest-600 text-cream-200 text-sm font-medium pl-3 pr-9 py-1 rounded-lg border border-forest-300 focus:ring-2 focus:ring-gold focus:border-gold cursor-pointer"
               >
                 <option value="week">Weeks</option>
                 <option value="month">Months</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-cream-300 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-cream-300 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
           <div className="flex items-center gap-3">
