@@ -428,27 +428,27 @@ export default function ThisWeek() {
                   {/* Meal Name with Thumbnail */}
                   <div className="flex-1">
                     {day.type === 'eating_out' && (
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded bg-amber-100 flex items-center justify-center flex-shrink-0">
                           <span className="text-lg">🍽️</span>
                         </div>
-                        <p className="font-semibold text-sm text-gray-900 pt-2">Eating out/take out</p>
+                        <p className="font-semibold text-sm text-gray-900">Eating out/take out</p>
                       </div>
                     )}
                     
                     {day.type === 'leftovers' && meal && (
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-2">
                         <MealThumbnail meal={meal} />
-                        <div className="min-w-0 pt-2">
+                        <div className="min-w-0">
                           <p className="font-semibold text-sm text-gray-900">Leftovers</p>
                         </div>
                       </div>
                     )}
                     
                     {day.type === 'meal' && meal && (
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-2">
                         <MealThumbnail meal={meal} />
-                        <div className="min-w-0 flex-1 pt-2">
+                        <div className="min-w-0 flex-1">
                           {editingDay === day.date ? (
                             <input
                               type="text"
@@ -477,7 +477,7 @@ export default function ThisWeek() {
                     )}
                     
                     {!meal && day.type === 'meal' && (
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
                           <span className="text-gray-400 text-lg">?</span>
                         </div>
