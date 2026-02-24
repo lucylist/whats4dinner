@@ -27,95 +27,54 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  const isOnQuick = window.location.hostname.endsWith('.quick.shopify.io');
-
-  const tryFetch = async (label: string, url: string, headers: Record<string, string>, body: object): Promise<string | null> => {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        console.warn(`[ImageGen] ${label} → ${res.status}: ${errText.slice(0, 200)}`);
-        return null;
-      }
-      const data = await res.json();
-      const b64 = data.data?.[0]?.b64_json;
-      if (b64) {
-        try {
-          const quick = (window as any).quick;
-          if (quick?.fs) {
-            const raw = atob(b64);
-            const ab = new ArrayBuffer(raw.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < raw.length; i++) ia[i] = raw.charCodeAt(i);
-            const file = new File([new Blob([ab], { type: 'image/png' })], `meal-${Date.now()}.png`, { type: 'image/png' });
-            const result = await quick.fs.uploadFile(file);
-            const hosted = result?.files?.[0]?.fullUrl || result?.files?.[0]?.url;
-            if (hosted) return hosted;
-          }
-        } catch { /* fall through */ }
-        return `data:image/png;base64,${b64}`;
-      }
-      return data.data?.[0]?.url || null;
-    } catch (e) {
-      console.warn(`[ImageGen] ${label} → network error:`, e);
-      return null;
+  const searchMealDbImage = async (mealName: string): Promise<string | null> => {
+    const words = mealName.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+    // Try full name first, then progressively shorter queries
+    for (let len = words.length; len >= 1; len--) {
+      const query = words.slice(0, len).join(' ');
+      try {
+        const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data.meals && data.meals.length > 0) {
+          return data.meals[0].strMealThumb || null;
+        }
+      } catch { /* try shorter query */ }
     }
+    return null;
   };
 
   const generateAiImage = async (mealName: string) => {
     if (isGeneratingImage) return;
     
     setIsGeneratingImage(true);
-    const prompt = `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, top-down or 45-degree angle, restaurant quality, shallow depth of field, warm natural lighting.`;
 
     try {
       let imageUrl: string | null = null;
       const storedKey = getStoredApiKey();
 
-      // 1. OpenAI key (sk-...) → call OpenAI directly, works everywhere
+      // 1. OpenAI key (sk-...) → AI-generated image, works everywhere
       if (storedKey && !isShopifyProxyKey(storedKey)) {
-        imageUrl = await tryFetch('OpenAI direct', 'https://api.openai.com/v1/images/generations',
-          { Authorization: `Bearer ${storedKey}` },
-          { model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }
-        );
-      }
-
-      // 2. On Quick: try every combination of auth + model + endpoint
-      if (!imageUrl && isOnQuick) {
-        const authVariants: [string, Record<string, string>][] = [
-          ['not-needed', { Authorization: 'Bearer not-needed' }],
-          ['no-auth', {}],
-        ];
-        if (storedKey && isShopifyProxyKey(storedKey)) {
-          authVariants.unshift(['shopify-token', { Authorization: `Bearer ${storedKey}` }]);
-        }
-
-        const models = ['dall-e-3', 'gpt-image-1'];
-        const endpoints = ['/api/ai/images/generations'];
-
-        for (const endpoint of endpoints) {
-          for (const [authLabel, authHeaders] of authVariants) {
-            for (const model of models) {
-              if (imageUrl) break;
-              const body = model === 'gpt-image-1'
-                ? { model, prompt, n: 1, size: '1024x1024', quality: 'low' }
-                : { model, prompt, n: 1, size: '1024x1024', quality: 'standard' };
-              imageUrl = await tryFetch(`Quick ${model} (${authLabel})`, endpoint, authHeaders, body);
-            }
-            if (imageUrl) break;
+        try {
+          const prompt = `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, restaurant quality.`;
+          const res = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${storedKey}` },
+            body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            imageUrl = data.data?.[0]?.url || null;
           }
-          if (imageUrl) break;
-        }
+        } catch { /* fall through */ }
       }
 
+      // 2. TheMealDB — free food photo search, no key needed, works everywhere
       if (!imageUrl) {
-        console.error('[ImageGen] All attempts failed for:', mealName);
-        throw new Error('All image generation attempts failed');
+        imageUrl = await searchMealDbImage(mealName);
       }
+
+      if (!imageUrl) throw new Error('No image found');
 
       setAiGeneratedImage(imageUrl);
       if (onUpdateImage) onUpdateImage(meal.id, imageUrl);
