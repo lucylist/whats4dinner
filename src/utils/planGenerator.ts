@@ -62,17 +62,16 @@ export function generateWeeklyPlan(
   // Shuffle meals for randomness
   const shuffledMeals = shuffleArray(availableMeals);
   
-  // Calculate how many meal days we need
-  const mealDaysNeeded = totalDays - preferences.eatingOutDays - preferences.leftoverDays;
+  // We need a meal for every non-eating-out day (leftovers get converted later)
+  const mealSlotsNeeded = totalDays - preferences.eatingOutDays;
   
-  // Select meals — no repeats until all meals have been used
+  // Select meals — no repeats until all meals have been used (deck approach)
   const selectedMeals: Meal[] = [];
   let deck: Meal[] = [];
   
-  for (let i = 0; i < mealDaysNeeded; i++) {
+  for (let i = 0; i < mealSlotsNeeded; i++) {
     if (deck.length === 0) {
       deck = shuffleArray(availableMeals);
-      // If the last picked meal is the same as the first in the new deck, rotate
       if (selectedMeals.length > 0 && deck.length > 1 && deck[0].id === selectedMeals[selectedMeals.length - 1].id) {
         deck.push(deck.shift()!);
       }
