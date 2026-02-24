@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800/95 backdrop-blur-sm border-t border-forest-500/50 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800/95 backdrop-blur-sm border-t border-forest-500/50 z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-around items-center h-20">
             <Link to="/calendar" className={navLinkClass('/calendar')}>
