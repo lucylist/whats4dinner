@@ -5,8 +5,6 @@ import { Meal } from '../types';
 import { Tag, Edit, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toTitleCase } from '../utils/storage';
-import { getStoredApiKey, isShopifyProxyKey } from '../pages/SettingsPage';
-
 interface MealCardProps {
   meal: Meal;
   onClick?: () => void;
@@ -50,31 +48,14 @@ export default function MealCard({ meal, onClick, showLastMade = true, onUpdateN
     setIsGeneratingImage(true);
 
     try {
-      let imageUrl: string | null = null;
-      const storedKey = getStoredApiKey();
+      // 1. TheMealDB — free food photo search, no key needed
+      let imageUrl = await searchMealDbImage(mealName);
 
-      // 1. OpenAI key (sk-...) → AI-generated image, works everywhere
-      if (storedKey && !isShopifyProxyKey(storedKey)) {
-        try {
-          const prompt = `Professional food photography of ${mealName}. Beautifully plated, well-lit, appetizing, restaurant quality.`;
-          const res = await fetch('https://api.openai.com/v1/images/generations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${storedKey}` },
-            body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', quality: 'standard' }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            imageUrl = data.data?.[0]?.url || null;
-          }
-        } catch { /* fall through */ }
-      }
-
-      // 2. TheMealDB — free food photo search, no key needed, works everywhere
+      // 2. Fallback — keyword-based food photo from loremflickr (Creative Commons)
       if (!imageUrl) {
-        imageUrl = await searchMealDbImage(mealName);
+        const keywords = mealName.toLowerCase().replace(/[^a-z\s]/g, '').trim().split(/\s+/).slice(0, 2).join(',');
+        imageUrl = `https://loremflickr.com/400/300/${encodeURIComponent(keywords)},food,dish`;
       }
-
-      if (!imageUrl) throw new Error('No image found');
 
       setAiGeneratedImage(imageUrl);
       if (onUpdateImage) onUpdateImage(meal.id, imageUrl);

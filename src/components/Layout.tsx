@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, Calendar, Settings, Refrigerator, Share2, Check, Cog } from 'lucide-react';
+import { ChefHat, Calendar, SlidersHorizontal, Refrigerator, Share2, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -69,13 +69,6 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </button>
             )}
-            <Link
-              to="/settings"
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Settings"
-            >
-              <Cog className="w-5 h-5" />
-            </Link>
           </div>
         </div>
       </header>
@@ -100,7 +93,7 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-xs font-medium">My fridge</span>
             </Link>
             <Link to="/plan-week" className={navLinkClass('/plan-week')}>
-              <Settings className="w-6 h-6 mb-1" />
+              <SlidersHorizontal className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Preferences</span>
             </Link>
           </div>

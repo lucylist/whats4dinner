@@ -13,7 +13,6 @@ import AddIngredient from './pages/AddIngredient';
 import Recommendations from './pages/Recommendations';
 import PhotoScan from './pages/PhotoScan';
 import Welcome from './pages/Welcome';
-import SettingsPage from './pages/SettingsPage';
 import { resolveRoom, generateRoomId, saveRoom, setRoomInUrl } from './utils/room';
 
 function App() {
@@ -70,7 +69,6 @@ function App() {
             <Route path="/add-ingredient" element={<AddIngredient />} />
             <Route path="/photo-scan" element={<PhotoScan />} />
             <Route path="/recommendations" element={<Recommendations />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </Layout>
       </HashRouter>
