@@ -91,12 +91,15 @@ function roomDoc(roomId: string, colName: string, docId: string) {
 
 async function testFirestoreConnectivity(roomId: string): Promise<boolean> {
   try {
+    console.log('[dinner-app] Testing Firestore connectivity for room:', roomId);
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Firestore timeout')), 5000)
     );
-    await Promise.race([getDocs(roomCollection(roomId, 'meals')), timeout]);
+    const snapshot = await Promise.race([getDocs(roomCollection(roomId, 'meals')), timeout]);
+    console.log('[dinner-app] Firestore OK — found', (snapshot as any).size, 'meals');
     return true;
-  } catch {
+  } catch (e) {
+    console.warn('[dinner-app] Firestore failed:', e);
     return false;
   }
 }
@@ -138,12 +141,16 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     let cancelled = false;
 
     const initDataInner = async () => {
+      console.log('[dinner-app] initData — roomId:', roomId);
+
       if (roomId) {
         const firestoreOk = await testFirestoreConnectivity(roomId);
+        console.log('[dinner-app] Firestore reachable:', firestoreOk);
 
         if (firestoreOk) {
           try {
             await migrateLocalStorageToFirestore(roomId);
+            console.log('[dinner-app] Migration complete');
           } catch (e) {
             console.log('Migration failed (non-fatal):', e);
           }
