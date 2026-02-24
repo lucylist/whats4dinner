@@ -147,6 +147,22 @@ export default function ThisWeek() {
     );
   };
   
+  const DesktopMealImage = ({ meal }: { meal: { name: string; imageUrl?: string } }) => {
+    const [hasError, setHasError] = React.useState(false);
+    React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
+    if (!meal.imageUrl || hasError) {
+      const p = getPlaceholderStyle(meal.name);
+      return (
+        <div className="aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: p.bg }}>
+          <span className="text-cream-300/30 text-4xl font-serif font-bold">{p.initials}</span>
+        </div>
+      );
+    }
+    return (
+      <img src={meal.imageUrl} alt={meal.name} className="aspect-[4/3] w-full object-cover" onError={() => setHasError(true)} />
+    );
+  };
+
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, dayDate: string) => {
     setDraggedDay(dayDate);
@@ -335,13 +351,14 @@ export default function ThisWeek() {
       {/* Calendar View */}
       <div ref={swipeContainerRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {/* Desktop grid */}
-        <div className="hidden md:grid grid-cols-7 gap-3">
+        <div className="hidden md:grid grid-cols-7 gap-2.5">
           {currentDays.map((day) => {
             const date = parseISO(day.date);
             const meal = day.mealId ? getMeal(day.mealId) : null;
             const today = isToday(date);
             const isDragOver = dragOverDay === day.date;
             const isDragging = draggedDay === day.date;
+            const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
             
             return (
               <div
@@ -349,16 +366,17 @@ export default function ThisWeek() {
                 onDragOver={(e) => handleDragOver(e, day.date)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, day.date)}
-                className={`bg-forest-700 rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 ${
-                  today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/60'
-                } ${isDragOver ? 'border-cobalt/60 bg-forest-600 scale-105 shadow-lg shadow-forest-900/50' : ''}`}
+                className={`rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 shadow-md shadow-black/20 ${
+                  today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/50'
+                } ${isDragOver ? 'border-cobalt/60 scale-105 shadow-lg shadow-forest-900/50' : ''}`}
+                style={{ backgroundColor: '#243424' }}
               >
                 {/* Day header */}
-                <div className={`p-3 text-center ${today ? 'bg-terracotta/15' : 'bg-forest-600/50'}`}>
-                  <div className={`text-xs font-semibold uppercase tracking-wide ${today ? 'text-terracotta' : 'text-cream-400'}`}>
+                <div className={`py-2 text-center ${today ? 'bg-terracotta/15' : ''}`}>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${today ? 'text-terracotta' : 'text-cream-500'}`}>
                     {format(date, 'EEE')}
                   </div>
-                  <div className={`text-2xl font-bold mt-1 ${today ? 'text-terracotta' : 'text-cream-100'}`}>
+                  <div className={`text-xl font-bold leading-tight ${today ? 'text-terracotta' : 'text-cream-100'}`}>
                     {format(date, 'd')}
                   </div>
                 </div>
@@ -368,53 +386,61 @@ export default function ThisWeek() {
                   draggable
                   onDragStart={(e) => handleDragStart(e, day.date)}
                   onDragEnd={handleDragEnd}
-                  className={`p-3 flex-1 flex flex-col cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : 'hover:bg-forest-600/30'}`}
+                  onClick={() => { if (isClickable) handleViewMeal(meal!.id); }}
+                  className={`flex-1 flex flex-col cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : ''} ${isClickable ? 'hover:bg-forest-600/40' : ''}`}
                 >
-                  <div className="flex-1">
-                    {day.type === 'eating_out' && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg bg-terracotta/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg">🍽️</span>
+                  {/* Meal image / icon area */}
+                  {day.type === 'meal' && meal && (
+                    <>
+                      {meal.imageUrl ? (
+                        <DesktopMealImage meal={meal} />
+                      ) : (
+                        <div className="aspect-[4/3] flex items-center justify-center" style={{ backgroundColor: getPlaceholderStyle(meal.name).bg }}>
+                          <span className="text-cream-300/30 text-4xl font-serif font-bold">{getPlaceholderStyle(meal.name).initials}</span>
                         </div>
-                        <p className="font-semibold text-sm text-cream-100">Eating out</p>
-                      </div>
-                    )}
-                    {day.type === 'leftovers' && meal && (
-                      <div className="flex items-center gap-2">
-                        <MealThumbnail meal={meal} size="sm" />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-sm text-cream-300">Leftovers</p>
-                          <p className="text-xs text-cream-500 truncate">{toTitleCase(meal.name)}</p>
-                        </div>
-                      </div>
-                    )}
-                    {day.type === 'meal' && meal && (
-                      <div className="flex items-center gap-2">
-                        <MealThumbnail meal={meal} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          {editingDay === day.date ? (
-                            <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} className="w-full font-semibold text-sm text-cream-100 bg-forest-800 border border-gold rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gold" autoFocus onClick={(e) => e.stopPropagation()} />
-                          ) : (
-                            <p className="font-semibold text-sm text-cream-100 line-clamp-2 cursor-text hover:text-gold px-1 py-0.5 rounded -mx-1 transition-colors" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, meal.name); }} title="Click to edit">{toTitleCase(meal.name)}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {!meal && day.type === 'meal' && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-lg bg-forest-600 flex items-center justify-center flex-shrink-0">
-                          <span className="text-cream-500 text-lg">?</span>
-                        </div>
+                      )}
+                      <div className="px-2.5 py-2 flex-1 flex flex-col justify-between">
                         {editingDay === day.date ? (
-                          <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} placeholder="Enter meal name..." className="flex-1 font-semibold text-sm text-cream-100 bg-forest-800 border border-gold rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gold" autoFocus onClick={(e) => e.stopPropagation()} />
+                          <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} className="w-full text-xs font-semibold text-cream-100 bg-forest-800 border border-gold rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gold" autoFocus onClick={(e) => e.stopPropagation()} />
                         ) : (
-                          <p className="text-sm text-cream-500 cursor-text hover:text-cream-300 px-1 py-0.5 rounded -mx-1 transition-colors" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, ''); }} title="Click to add meal">No meal</p>
+                          <p className="text-xs font-semibold text-cream-100 line-clamp-2 leading-snug cursor-text hover:text-gold transition-colors" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, meal.name); }} title="Click to edit">{toTitleCase(meal.name)}</p>
                         )}
                       </div>
-                    )}
-                  </div>
-                  {day.type === 'meal' && meal && (
-                    <button onClick={() => handleViewMeal(meal.id)} className="mt-2 w-full py-1.5 px-2 text-xs font-medium text-cobalt hover:bg-cobalt/10 rounded transition-colors">View recipe →</button>
+                    </>
+                  )}
+                  {day.type === 'leftovers' && meal && (
+                    <>
+                      <div className="aspect-[4/3] relative">
+                        {meal.imageUrl ? (
+                          <DesktopMealImage meal={meal} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: getPlaceholderStyle(meal.name).bg }}>
+                            <span className="text-cream-300/30 text-4xl font-serif font-bold">{getPlaceholderStyle(meal.name).initials}</span>
+                          </div>
+                        )}
+                        <div className="absolute top-1.5 left-1.5 bg-forest-800/80 backdrop-blur-sm text-cream-400 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded">Leftovers</div>
+                      </div>
+                      <div className="px-2.5 py-2">
+                        <p className="text-xs font-semibold text-cream-200 line-clamp-2 leading-snug">{toTitleCase(meal.name)}</p>
+                      </div>
+                    </>
+                  )}
+                  {day.type === 'eating_out' && (
+                    <div className="flex-1 flex flex-col items-center justify-center py-4 px-2">
+                      <div className="w-12 h-12 rounded-full bg-terracotta/15 flex items-center justify-center mb-2">
+                        <span className="text-xl">🍽️</span>
+                      </div>
+                      <p className="text-xs font-semibold text-cream-300">Eating out</p>
+                    </div>
+                  )}
+                  {!meal && day.type === 'meal' && (
+                    <div className="flex-1 flex flex-col items-center justify-center py-4 px-2">
+                      {editingDay === day.date ? (
+                        <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} placeholder="Meal name..." className="w-full text-xs font-semibold text-cream-100 bg-forest-800 border border-gold rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gold" autoFocus onClick={(e) => e.stopPropagation()} />
+                      ) : (
+                        <p className="text-xs text-cream-500 cursor-text hover:text-cream-300 transition-colors" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, ''); }} title="Click to add meal">+ Add meal</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
