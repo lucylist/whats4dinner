@@ -91,6 +91,15 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
                   if (fp) for (const p of fp) await qdb.collection(qCol('plans', roomId)).create(p);
                   const fi = await qdb.collection('inventory').find();
                   if (fi) for (const i of fi) await qdb.collection(qCol('inventory', roomId)).create(i);
+                } else {
+                  const localMeals = getAllMeals();
+                  const localPlan = getCurrentWeeklyPlan();
+                  const localInv = getAllInventoryItems();
+                  if (localMeals.length > 0) {
+                    for (const m of localMeals) await qdb.collection(qCol('meals', roomId)).create({ ...m });
+                    if (localPlan) await qdb.collection(qCol('plans', roomId)).create({ ...localPlan });
+                    for (const inv of localInv) await qdb.collection(qCol('inventory', roomId)).create({ ...inv });
+                  }
                 }
               }
             } catch (e) { console.log('Quick DB migration (non-fatal):', e); }
@@ -101,9 +110,9 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
             qdb.collection(qCol('plans', roomId)).find(),
             qdb.collection(qCol('inventory', roomId)).find()
           ]);
-          setMeals(dbMeals || []);
-          setCurrentPlanState(normalizePlan(dbPlans?.[0] || null));
-          setInventory(dbInv || []);
+          if (dbMeals && dbMeals.length > 0) setMeals(dbMeals);
+          if (dbPlans && dbPlans.length > 0) setCurrentPlanState(normalizePlan(dbPlans[0]));
+          if (dbInv && dbInv.length > 0) setInventory(dbInv);
           return;
         }
 
@@ -175,23 +184,23 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   // --- Meal operations ---
   const addMeal = async (meal: Meal) => {
     saveMealToStorage(meal);
-    if (await fsWrite('meals', meal.id, meal)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).create(meal); } catch (e) { console.log(e); } }
     setMeals(prev => [...prev, meal]);
+    fsWrite('meals', meal.id, meal);
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).create(meal); } catch (e) { console.log(e); } }
   };
 
   const updateMeal = async (meal: Meal) => {
     saveMealToStorage(meal);
-    if (await fsWrite('meals', meal.id, meal, true)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).update(meal.id, meal); } catch (e) { console.log(e); } }
     setMeals(prev => prev.map(m => m.id === meal.id ? meal : m));
+    fsWrite('meals', meal.id, meal, true);
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).update(meal.id, meal); } catch (e) { console.log(e); } }
   };
 
   const deleteMeal = async (mealId: string) => {
     deleteMealFromStorage(mealId);
-    if (await fsDelete('meals', mealId)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).delete(mealId); } catch (e) { console.log(e); } }
     setMeals(prev => prev.filter(m => m.id !== mealId));
+    fsDelete('meals', mealId);
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).delete(mealId); } catch (e) { console.log(e); } }
   };
 
   const getMeal = (mealId: string) => meals.find(m => m.id === mealId);
@@ -199,7 +208,8 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   // --- Weekly plan operations ---
   const setCurrentPlan = async (plan: WeeklyPlan | null) => {
     setCurrentWeeklyPlan(plan);
-    if (plan && await fsWrite('plans', plan.id, plan)) return;
+    setCurrentPlanState(plan);
+    if (plan) fsWrite('plans', plan.id, plan);
     if (quickDB && plan) {
       try {
         const col = qCol('plans', roomId);
@@ -208,12 +218,12 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
         else await quickDB.collection(col).create(plan);
       } catch (e) { console.log(e); }
     }
-    setCurrentPlanState(plan);
   };
 
   const updateCurrentPlan = async (plan: WeeklyPlan) => {
     setCurrentWeeklyPlan(plan);
-    if (await fsWrite('plans', plan.id, plan, true)) return;
+    setCurrentPlanState(plan);
+    fsWrite('plans', plan.id, plan, true);
     if (quickDB) {
       try {
         const col = qCol('plans', roomId);
@@ -222,29 +232,28 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
         else await quickDB.collection(col).create(plan);
       } catch (e) { console.log(e); }
     }
-    setCurrentPlanState(plan);
   };
 
   // --- Inventory operations ---
   const addInventoryItem = async (item: InventoryItem) => {
     saveInventoryItemToStorage(item);
-    if (await fsWrite('inventory', item.id, item)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).create(item); } catch (e) { console.log(e); } }
     setInventory(prev => [...prev, item]);
+    fsWrite('inventory', item.id, item);
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).create(item); } catch (e) { console.log(e); } }
   };
 
   const updateInventoryItem = async (item: InventoryItem) => {
     saveInventoryItemToStorage(item);
-    if (await fsWrite('inventory', item.id, item, true)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).update(item.id, item); } catch (e) { console.log(e); } }
     setInventory(prev => prev.map(i => i.id === item.id ? item : i));
+    fsWrite('inventory', item.id, item, true);
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).update(item.id, item); } catch (e) { console.log(e); } }
   };
 
   const deleteInventoryItem = async (itemId: string) => {
     deleteInventoryItemFromStorage(itemId);
-    if (await fsDelete('inventory', itemId)) return;
-    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).delete(itemId); } catch (e) { console.log(e); } }
     setInventory(prev => prev.filter(i => i.id !== itemId));
+    fsDelete('inventory', itemId);
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).delete(itemId); } catch (e) { console.log(e); } }
   };
 
   const value: AppContextType = {
