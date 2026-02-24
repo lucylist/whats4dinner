@@ -321,8 +321,8 @@ export default function ThisWeek() {
           </h2>
           <p className="text-gray-600 mt-1">
             {currentPlan.duration === 'month' 
-              ? `${format(parseISO(currentPlan.weekStartDate), 'MMMM yyyy')} - ${currentPlan.days.length} days`
-              : `Week of ${format(parseISO(currentPlan.weekStartDate), 'MMMM d, yyyy')}`
+              ? `${format(new Date(), 'MMMM yyyy')} - ${currentPlan.days.length} days`
+              : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMMM d, yyyy')}`
             }
           </p>
         </div>
