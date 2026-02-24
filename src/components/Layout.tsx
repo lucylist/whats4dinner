@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Share2, Check } from 'lucide-react';
-import { CalendarLeafIcon, RecipesFlowerIcon, PlanHerbIcon } from './NavIcons';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -15,11 +14,19 @@ export default function Layout({ children }: LayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const basePath = import.meta.env.BASE_URL || '/';
+
   const navLinkClass = (path: string) => {
-    const base = "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors";
+    const base = "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all";
     return isActive(path)
       ? `${base} bg-gold/20 text-gold-light`
       : `${base} text-cream-400 hover:text-cream-100 hover:bg-forest-600`;
+  };
+
+  const navIconClass = (path: string) => {
+    return isActive(path)
+      ? "w-7 h-7 mb-0.5 rounded-md object-contain brightness-125"
+      : "w-7 h-7 mb-0.5 rounded-md object-contain opacity-60 brightness-75";
   };
 
   const handleShare = async () => {
@@ -86,17 +93,17 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-around items-center h-16">
             <Link to="/calendar" className={navLinkClass('/calendar')}>
-              <CalendarLeafIcon className="w-7 h-7 mb-0.5" />
+              <img src={`${basePath}images/nav-icon-calendar.png`} alt="" className={navIconClass('/calendar')} />
               <span className="text-[10px] sm:text-xs font-medium tracking-wide">Calendar</span>
             </Link>
             <Link to="/meals" className={navLinkClass('/meals')}>
-              <RecipesFlowerIcon className="w-7 h-7 mb-0.5" />
-              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Recipes</span>
+              <img src={`${basePath}images/nav-icon-meals.png`} alt="" className={navIconClass('/meals')} />
+              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Meals</span>
             </Link>
             {/* My Fridge - hidden for MVP */}
             <Link to="/plan-week" className={navLinkClass('/plan-week')}>
-              <PlanHerbIcon className="w-7 h-7 mb-0.5" />
-              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Plan</span>
+              <img src={`${basePath}images/nav-icon-preferences.png`} alt="" className={navIconClass('/plan-week')} />
+              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Preferences</span>
             </Link>
           </div>
         </div>
