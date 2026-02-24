@@ -1,261 +1,210 @@
-// Plan Week page - generate new weekly plan
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, Minus, Plus, ChefHat, UtensilsCrossed, Cookie } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateWeeklyPlan } from '../utils/planGenerator';
 import { PlannerPreferences } from '../types';
 import Button from '../components/Button';
-import Input from '../components/Input';
 
 export default function PlanWeek() {
   const { meals, setCurrentPlan } = useApp();
   const navigate = useNavigate();
   
-  const [preferences, setPreferences] = useState<PlannerPreferences>({
-    duration: 'week',
-    durationCount: 1,
-    eatingOutDays: 1,
-    leftoverDays: 1,
-    excludedMealIds: [],
-    preferQuickMeals: false,
-    useIngredientsFromFridge: false
-  });
-  
-  // Calculate total days based on duration
-  const totalDays = preferences.duration === 'month' 
-    ? preferences.durationCount * 30 
-    : preferences.durationCount * 7;
-  
+  const [eatingOut, setEatingOut] = useState(1);
+  const [leftovers, setLeftovers] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  
-  const handleGenerate = async () => {
+
+  const totalDays = 7;
+  const cookingDays = Math.max(0, totalDays - eatingOut - leftovers);
+
+  const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+
+  const handleEatingOutChange = (delta: number) => {
+    const next = clamp(eatingOut + delta, 0, totalDays - leftovers);
+    setEatingOut(next);
+  };
+
+  const handleLeftoversChange = (delta: number) => {
+    const next = clamp(leftovers + delta, 0, totalDays - eatingOut);
+    setLeftovers(next);
+  };
+
+  const handleGenerate = () => {
     if (meals.length === 0) {
-      alert('Please add some meals to your library first!');
+      alert('Add some meals to your library first!');
       return;
     }
-    
     setIsGenerating(true);
-    
-    // Simulate slight delay for better UX
     setTimeout(() => {
+      const preferences: PlannerPreferences = {
+        duration: 'week',
+        durationCount: 1,
+        eatingOutDays: eatingOut,
+        leftoverDays: leftovers,
+        excludedMealIds: [],
+        preferQuickMeals: false,
+        useIngredientsFromFridge: false,
+      };
       const plan = generateWeeklyPlan(meals, new Date(), preferences);
       setCurrentPlan(plan);
       setIsGenerating(false);
       navigate('/calendar');
-    }, 500);
+    }, 400);
   };
-  
+
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  const buildWeekPreview = () => {
+    const days: ('cook' | 'out' | 'leftover')[] = [];
+    for (let i = 0; i < totalDays; i++) {
+      if (i < cookingDays) days.push('cook');
+      else if (i < cookingDays + leftovers) days.push('leftover');
+      else days.push('out');
+    }
+    return days;
+  };
+
+  const weekPreview = buildWeekPreview();
+
   return (
-    <div className="max-w-2xl mx-auto pt-6 space-y-6">
+    <div className="max-w-lg mx-auto pt-4 sm:pt-6 space-y-6 px-1">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/calendar')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          title="Back"
+          className="p-2 -ml-2 text-gray-600 hover:text-gray-900 rounded-lg active:bg-gray-100"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-2xl font-bold text-gray-900">Create Meal Calendar</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Plan your week</h2>
       </div>
+
+      {/* Meal library count */}
+      {meals.length > 0 ? (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <ChefHat className="w-4 h-4" />
+          <span>{meals.length} meals in your library</span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-sm text-amber-800 font-medium">
+            Add some meals to your library first, then come back to plan your week.
+          </p>
+          <button
+            onClick={() => navigate('/meals')}
+            className="mt-2 text-sm font-semibold text-amber-700 underline"
+          >
+            Go to Meals →
+          </button>
+        </div>
+      )}
       
-      {/* Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-900">
-          Configure your preferences below and generate a meal calendar for any duration. 
-          You can customize it after generation.
-        </p>
-      </div>
-      
-      {/* Form */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Duration</h3>
-          
-          {/* Duration Type Selector */}
-          <div className="space-y-2 mb-6">
-            <label className="block text-sm font-medium text-gray-700">
-              Calendar duration
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPreferences(prev => ({ 
-                  ...prev, 
-                  duration: 'week',
-                  durationCount: 1,
-                  eatingOutDays: Math.min(prev.eatingOutDays, 7),
-                  leftoverDays: Math.min(prev.leftoverDays, 7)
-                }))}
-                className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-                  preferences.duration === 'week'
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                Week(s)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreferences(prev => ({ 
-                  ...prev, 
-                  duration: 'month',
-                  durationCount: 1,
-                  eatingOutDays: Math.min(prev.eatingOutDays, 30),
-                  leftoverDays: Math.min(prev.leftoverDays, 30)
-                }))}
-                className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-                  preferences.duration === 'month'
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                Month(s)
-              </button>
+      {/* Visual week preview */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Your week at a glance</h3>
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-6">
+          {weekPreview.map((type, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <span className="text-[10px] sm:text-xs font-semibold text-gray-400">{dayLabels[i]}</span>
+              <div className={`w-full aspect-square rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                type === 'cook'
+                  ? 'bg-primary-100 text-primary-600'
+                  : type === 'leftover'
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+                {type === 'cook' && <ChefHat className="w-5 h-5 sm:w-6 sm:h-6" />}
+                {type === 'leftover' && <Cookie className="w-5 h-5 sm:w-6 sm:h-6" />}
+                {type === 'out' && <UtensilsCrossed className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:text-sm mb-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-primary-500" />
+            <span className="text-gray-600 font-medium">{cookingDays} cooking</span>
           </div>
-          
-          {/* Duration Count */}
-          <div className="space-y-2 mb-6">
-            <label className="block text-sm font-medium text-gray-700">
-              Number of {preferences.duration === 'week' ? 'weeks' : 'months'}: {preferences.durationCount}
-            </label>
-            <input
-              type="range"
-              min="1"
-              max={preferences.duration === 'week' ? 4 : 3}
-              value={preferences.durationCount}
-              onChange={(e) => setPreferences(prev => ({
-                ...prev,
-                durationCount: parseInt(e.target.value)
-              }))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>1</span>
-              <span>{preferences.duration === 'week' ? '4 weeks' : '3 months'}</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Total: {totalDays} days
-            </p>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-amber-400" />
+            <span className="text-gray-600 font-medium">{leftovers} leftovers</span>
           </div>
-          
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-6">Plan preferences</h3>
-          
-          {/* Eating Out/Take Out Days */}
-          <div className="space-y-2 mb-6">
-            <label className="block text-sm font-medium text-gray-700">
-              Eating out/take out days: {preferences.eatingOutDays}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max={totalDays}
-              value={preferences.eatingOutDays}
-              onChange={(e) => setPreferences(prev => ({
-                ...prev,
-                eatingOutDays: parseInt(e.target.value)
-              }))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>0</span>
-              <span>{totalDays} days</span>
-            </div>
-          </div>
-          
-          {/* Leftover Days */}
-          <div className="space-y-2 mb-6">
-            <label className="block text-sm font-medium text-gray-700">
-              Leftover Days: {preferences.leftoverDays}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max={totalDays}
-              value={preferences.leftoverDays}
-              onChange={(e) => setPreferences(prev => ({
-                ...prev,
-                leftoverDays: parseInt(e.target.value)
-              }))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>0</span>
-              <span>{totalDays} days</span>
-            </div>
-          </div>
-          
-          {/* Checkboxes */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.preferQuickMeals}
-                onChange={(e) => setPreferences(prev => ({
-                  ...prev,
-                  preferQuickMeals: e.target.checked
-                }))}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm text-gray-700">Prefer quick meals (shorter prep time)</span>
-            </label>
-            
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={preferences.useIngredientsFromFridge}
-                onChange={(e) => setPreferences(prev => ({
-                  ...prev,
-                  useIngredientsFromFridge: e.target.checked
-                }))}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm text-gray-700">
-                Use ingredients from my fridge (prioritize available ingredients)
-              </span>
-            </label>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-gray-300" />
+            <span className="text-gray-600 font-medium">{eatingOut} eating out</span>
           </div>
         </div>
-        
-        {/* Stats */}
-        <div className="border-t pt-6">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{meals.length}</p>
-              <p className="text-sm text-gray-600">Meals Available</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-primary-600">
-                {totalDays - preferences.eatingOutDays - preferences.leftoverDays}
-              </p>
-              <p className="text-sm text-gray-600">Cooking Days</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-accent-600">
-                {preferences.eatingOutDays + preferences.leftoverDays}
-              </p>
-              <p className="text-sm text-gray-600">Off Days</p>
-            </div>
+      </div>
+
+      {/* Controls */}
+      <div className="space-y-3">
+        {/* Eating out stepper */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-gray-900">Eating out</p>
+            <p className="text-sm text-gray-500">Nights you won't cook</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleEatingOutChange(-1)}
+              disabled={eatingOut <= 0}
+              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="text-2xl font-bold text-gray-900 w-8 text-center tabular-nums">{eatingOut}</span>
+            <button
+              onClick={() => handleEatingOutChange(1)}
+              disabled={eatingOut >= totalDays - leftovers}
+              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
           </div>
         </div>
-        
-        {/* Generate Button */}
+
+        {/* Leftovers stepper */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-gray-900">Leftovers</p>
+            <p className="text-sm text-gray-500">Nights you'll reheat</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleLeftoversChange(-1)}
+              disabled={leftovers <= 0}
+              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="text-2xl font-bold text-gray-900 w-8 text-center tabular-nums">{leftovers}</span>
+            <button
+              onClick={() => handleLeftoversChange(1)}
+              disabled={leftovers >= totalDays - eatingOut}
+              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Generate button */}
+      <div className="pb-8">
         <Button
           fullWidth
           onClick={handleGenerate}
-          disabled={isGenerating || meals.length === 0}
-          className="flex items-center justify-center gap-2 text-lg py-3"
+          disabled={isGenerating || meals.length === 0 || cookingDays < 1}
+          className="flex items-center justify-center gap-2 text-lg py-4 rounded-2xl"
         >
           <Sparkles className="w-5 h-5" />
-          {isGenerating ? 'Generating...' : `Generate ${preferences.durationCount} ${preferences.duration === 'week' ? (preferences.durationCount === 1 ? 'Week' : 'Weeks') : (preferences.durationCount === 1 ? 'Month' : 'Months')}`}
+          {isGenerating ? 'Generating...' : 'Generate my week'}
         </Button>
-        
-        {meals.length === 0 && (
-          <p className="text-sm text-red-600 text-center">
-            Please add some meals to your library before generating a calendar.
+        {cookingDays < 1 && meals.length > 0 && (
+          <p className="text-sm text-amber-600 text-center mt-2">
+            You need at least 1 cooking day
           </p>
         )}
       </div>
