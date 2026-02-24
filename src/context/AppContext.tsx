@@ -222,20 +222,25 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
     const initData = async () => {
       setIsLoading(true);
+      let resolved = false;
 
-      const timeout = new Promise<void>((resolve) => setTimeout(() => {
-        console.warn('Init timed out after 8s – falling back to localStorage');
-        if (!cancelled) loadFromLocalStorage();
-        resolve();
-      }, 8000));
+      const timeoutId = setTimeout(() => {
+        if (!resolved && !cancelled) {
+          console.warn('Init timed out after 8s – falling back to localStorage');
+          loadFromLocalStorage();
+          setIsLoading(false);
+        }
+      }, 8000);
 
       try {
-        await Promise.race([initDataInner(), timeout]);
+        await initDataInner();
       } catch (e) {
         console.error('Init error:', e);
         if (!cancelled) loadFromLocalStorage();
       }
 
+      resolved = true;
+      clearTimeout(timeoutId);
       if (!cancelled) setIsLoading(false);
     };
 
