@@ -1,6 +1,6 @@
 {
   "name": "dinner-planner-app",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A meal planning app with ingredient-based recommendations",
   "type": "module",
   "scripts": {

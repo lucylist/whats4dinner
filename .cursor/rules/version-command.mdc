@@ -1,0 +1,29 @@
+---
+description: When the user says "version", snapshot the current state as a git commit and tag for easy rollback.
+alwaysApply: true
+---
+
+# Version Command
+
+When the user says **"version"** (on its own or as part of a message like "version this"):
+
+1. **Stage all changes**: `git add -A`
+2. **Commit** with a message summarizing what changed since the last version tag, prefixed with the version number (e.g., `v1.2.0 — Brief summary`)
+3. **Tag** the commit with the version number (e.g., `git tag v1.2.0`)
+4. **Bump** the `version` field in `package.json` to match
+5. **Report** the version number and a one-line summary to the user
+
+## Versioning scheme
+
+- Use semver: `MAJOR.MINOR.PATCH`
+- Increment **MINOR** for new features or visual redesigns
+- Increment **PATCH** for bug fixes, contrast tweaks, small adjustments
+- Increment **MAJOR** only if the user explicitly requests it
+
+## Reverting
+
+If the user says **"revert to v1.1.0"** (or any version):
+
+1. Run `git log --oneline --all` to confirm the tag exists
+2. Run `git checkout v1.1.0` (or the requested tag)
+3. Confirm with the user before any hard reset to main
