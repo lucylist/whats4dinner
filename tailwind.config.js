@@ -8,7 +8,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
-        serif: ['Cedarville Cursive', 'cursive'],
+        serif: ['Georgia', '"Times New Roman"', 'serif'],
+        cursive: ['Cedarville Cursive', 'cursive'],
         script: ['Pinyon Script', 'cursive'],
       },
       colors: {
