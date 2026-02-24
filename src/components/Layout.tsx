@@ -45,9 +45,10 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 bg-white shadow-sm border-b border-gray-200 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary-600 flex items-center gap-2">
-            <ChefHat className="w-8 h-8" />
-            What's for dinner?
+          <h1 className="text-lg sm:text-2xl font-bold text-primary-600 flex items-center gap-2">
+            <ChefHat className="w-6 h-6 sm:w-8 sm:h-8" />
+            <span className="hidden sm:inline">What's for dinner?</span>
+            <span className="sm:hidden">What's for dinner?</span>
           </h1>
           <div className="flex items-center gap-1">
             {roomId && (
@@ -88,10 +89,12 @@ export default function Layout({ children }: LayoutProps) {
               <ChefHat className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Meals</span>
             </Link>
+            {/* My Fridge - hidden for MVP, re-enable later
             <Link to="/fridge" className={navLinkClass('/fridge')}>
               <Refrigerator className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">My fridge</span>
             </Link>
+            */}
             <Link to="/plan-week" className={navLinkClass('/plan-week')}>
               <SlidersHorizontal className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Preferences</span>

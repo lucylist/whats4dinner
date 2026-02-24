@@ -1,6 +1,6 @@
 // This Week page - view current meal plan (week/month durations)
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { Calendar, RefreshCw, ChevronLeft, ChevronRight, GripVertical, X } from 'lucide-react';
@@ -306,23 +306,54 @@ export default function ThisWeek() {
     return weekMeals;
   };
   
+  // Swipe gesture handling for mobile week navigation
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const swipeContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // Only count horizontal swipes (ignore vertical scroll)
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+    if (currentPlan.days.length <= 7) return;
+    const maxWeek = Math.floor((currentPlan.days.length - 1) / 7);
+    if (deltaX < 0 && currentWeekIndex < maxWeek) {
+      setCurrentWeekIndex(currentWeekIndex + 1);
+    } else if (deltaX > 0 && currentWeekIndex > 0) {
+      setCurrentWeekIndex(currentWeekIndex - 1);
+    }
+  }, [currentWeekIndex, currentPlan]);
+
+  const currentDays = currentPlan.days.slice(currentWeekIndex * 7, (currentWeekIndex + 1) * 7);
+
   return (
-    <div className="pt-6 space-y-6">
+    <div className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className="flex justify-between items-center gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
             {currentPlan.duration === 'month' 
               ? `${currentPlan.durationCount} Month${currentPlan.durationCount > 1 ? 's' : ''} Calendar`
               : currentPlan.durationCount === 1
-                ? "This week's calendar"
+                ? "This week's meals"
                 : `${currentPlan.durationCount} Weeks Calendar`
             }
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 mt-0.5">
             {currentPlan.duration === 'month' 
               ? `${format(new Date(), 'MMMM yyyy')} - ${currentPlan.days.length} days`
-              : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMMM d, yyyy')}`
+              : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}`
             }
           </p>
         </div>
@@ -341,29 +372,28 @@ export default function ThisWeek() {
             });
             setCurrentPlan(plan);
           }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 flex-shrink-0"
         >
           <RefreshCw className="w-4 h-4" />
-          Regenerate
+          <span className="hidden sm:inline">Regenerate</span>
         </Button>
       </div>
       
       {/* Week Navigation for long plans */}
       {currentPlan.days.length > 7 && (
-        <div className="flex items-center justify-between bg-white rounded-lg p-4 border border-gray-200">
+        <div className="flex items-center justify-between bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
           <button
             onClick={() => setCurrentWeekIndex(Math.max(0, currentWeekIndex - 1))}
             disabled={currentWeekIndex === 0}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg active:bg-gray-100"
           >
             <ChevronLeft className="w-5 h-5" />
-            Previous Week
           </button>
           <div className="text-center">
-            <p className="font-semibold text-gray-900">
+            <p className="font-semibold text-gray-900 text-sm sm:text-base">
               Week {currentWeekIndex + 1} of {Math.ceil(currentPlan.days.length / 7)}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               {currentPlan.days[currentWeekIndex * 7] && 
                 format(parseISO(currentPlan.days[currentWeekIndex * 7].date), 'MMM d')} - {' '}
               {currentPlan.days[Math.min((currentWeekIndex + 1) * 7 - 1, currentPlan.days.length - 1)] && 
@@ -373,24 +403,25 @@ export default function ThisWeek() {
           <button
             onClick={() => setCurrentWeekIndex(Math.min(Math.floor((currentPlan.days.length - 1) / 7), currentWeekIndex + 1))}
             disabled={currentWeekIndex >= Math.floor((currentPlan.days.length - 1) / 7)}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg active:bg-gray-100"
           >
-            Next Week
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}
       
-      {/* Horizontal Week View */}
-      <div className="overflow-x-auto pb-4 -mx-4 px-4">
-        <div className="grid grid-cols-7 gap-3 min-w-[900px]">
-          {currentPlan.days
-            .slice(currentWeekIndex * 7, (currentWeekIndex + 1) * 7)
-            .map((day) => {
+      {/* Mobile: Stacked day cards / Desktop: 7-column grid */}
+      <div
+        ref={swipeContainerRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Desktop grid (hidden on small screens) */}
+        <div className="hidden md:grid grid-cols-7 gap-3">
+          {currentDays.map((day) => {
             const date = parseISO(day.date);
             const meal = day.mealId ? getMeal(day.mealId) : null;
             const today = isToday(date);
-            
             const isDragOver = dragOverDay === day.date;
             const isDragging = draggedDay === day.date;
             
@@ -404,7 +435,6 @@ export default function ThisWeek() {
                   today ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-200'
                 } ${isDragOver ? 'border-primary-400 bg-primary-50 scale-105 shadow-lg' : ''}`}
               >
-                {/* Day Header - Static, not draggable */}
                 <div className={`p-3 text-center ${today ? 'bg-primary-500 text-white' : 'bg-gray-50'}`}>
                   <div className={`text-xs font-semibold uppercase tracking-wide ${today ? 'text-primary-100' : 'text-gray-500'}`}>
                     {format(date, 'EEE')}
@@ -414,28 +444,24 @@ export default function ThisWeek() {
                   </div>
                 </div>
                 
-                {/* Meal Content - This is the draggable part */}
                 <div 
                   draggable
                   onDragStart={(e) => handleDragStart(e, day.date)}
                   onDragEnd={handleDragEnd}
                   className={`p-3 flex-1 flex flex-col cursor-grab active:cursor-grabbing relative ${isDragging ? 'opacity-50 bg-gray-100' : 'hover:bg-gray-50'}`}
                 >
-                  {/* Drag Handle */}
                   <div className="absolute top-1 right-1 text-gray-300">
                     <GripVertical className="w-4 h-4" />
                   </div>
-                  {/* Meal Name with Thumbnail */}
                   <div className="flex-1">
                     {day.type === 'eating_out' && (
                       <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded bg-amber-100 flex items-center justify-center flex-shrink-0">
                           <span className="text-lg">🍽️</span>
                         </div>
-                        <p className="font-semibold text-sm text-gray-900">Eating out/take out</p>
+                        <p className="font-semibold text-sm text-gray-900">Eating out</p>
                       </div>
                     )}
-                    
                     {day.type === 'leftovers' && meal && (
                       <div className="flex items-center gap-2">
                         <MealThumbnail meal={meal} />
@@ -444,89 +470,37 @@ export default function ThisWeek() {
                         </div>
                       </div>
                     )}
-                    
                     {day.type === 'meal' && meal && (
                       <div className="flex items-center gap-2">
                         <MealThumbnail meal={meal} />
                         <div className="min-w-0 flex-1">
                           {editingDay === day.date ? (
-                            <input
-                              type="text"
-                              value={editedMealName}
-                              onChange={(e) => setEditedMealName(e.target.value)}
-                              onKeyDown={(e) => handleEditKeyDown(e, day)}
-                              onBlur={() => handleSaveEdit(day)}
-                              className="w-full font-semibold text-sm text-gray-900 border border-primary-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                            <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} className="w-full font-semibold text-sm text-gray-900 border border-primary-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500" autoFocus onClick={(e) => e.stopPropagation()} />
                           ) : (
-                            <p 
-                              className="font-semibold text-sm text-gray-900 line-clamp-2 cursor-text hover:bg-gray-100 px-1 py-0.5 rounded -mx-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartEdit(day.date, meal.name);
-                              }}
-                              title="Click to edit"
-                            >
-                              {toTitleCase(meal.name)}
-                            </p>
+                            <p className="font-semibold text-sm text-gray-900 line-clamp-2 cursor-text hover:bg-gray-100 px-1 py-0.5 rounded -mx-1" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, meal.name); }} title="Click to edit">{toTitleCase(meal.name)}</p>
                           )}
                         </div>
                       </div>
                     )}
-                    
                     {!meal && day.type === 'meal' && (
                       <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
                           <span className="text-gray-400 text-lg">?</span>
                         </div>
                         {editingDay === day.date ? (
-                          <input
-                            type="text"
-                            value={editedMealName}
-                            onChange={(e) => setEditedMealName(e.target.value)}
-                            onKeyDown={(e) => handleEditKeyDown(e, day)}
-                            onBlur={() => handleSaveEdit(day)}
-                            placeholder="Enter meal name..."
-                            className="flex-1 font-semibold text-sm text-gray-900 border border-primary-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                          <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} placeholder="Enter meal name..." className="flex-1 font-semibold text-sm text-gray-900 border border-primary-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500" autoFocus onClick={(e) => e.stopPropagation()} />
                         ) : (
-                          <p 
-                            className="text-sm text-gray-400 cursor-text hover:bg-gray-100 px-1 py-0.5 rounded -mx-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(day.date, '');
-                            }}
-                            title="Click to add meal"
-                          >
-                            No meal - click to add
-                          </p>
+                          <p className="text-sm text-gray-400 cursor-text hover:bg-gray-100 px-1 py-0.5 rounded -mx-1" onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, ''); }} title="Click to add meal">No meal</p>
                         )}
                       </div>
                     )}
                   </div>
-                  
-                  {/* View Button for meals */}
                   {day.type === 'meal' && meal && (
-                    <button
-                      onClick={() => handleViewMeal(meal.id)}
-                      className="mt-2 w-full py-1.5 px-2 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                    >
-                      View →
-                    </button>
+                    <button onClick={() => handleViewMeal(meal.id)} className="mt-2 w-full py-1.5 px-2 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded transition-colors">View →</button>
                   )}
-                  
-                  {/* Leftover meal name */}
                   {day.type === 'leftovers' && meal && (
-                    <p className="mt-2 w-full py-1.5 px-2 text-xs text-gray-500 text-center truncate">
-                      {toTitleCase(meal.name)}
-                    </p>
+                    <p className="mt-2 w-full py-1.5 px-2 text-xs text-gray-500 text-center truncate">{toTitleCase(meal.name)}</p>
                   )}
-                  
-                  {/* Custom Note */}
                   {day.customNote && (
                     <div className="mt-2 p-1.5 bg-yellow-50 border border-yellow-200 rounded">
                       <p className="text-xs text-yellow-800 line-clamp-2">{day.customNote}</p>
@@ -537,17 +511,112 @@ export default function ThisWeek() {
             );
           })}
         </div>
+
+        {/* Mobile stacked list (hidden on md+) */}
+        <div className="md:hidden space-y-2">
+          {currentDays.map((day) => {
+            const date = parseISO(day.date);
+            const meal = day.mealId ? getMeal(day.mealId) : null;
+            const today = isToday(date);
+            
+            return (
+              <div
+                key={day.date}
+                onClick={() => {
+                  if (day.type === 'meal' && meal) handleViewMeal(meal.id);
+                }}
+                className={`bg-white rounded-xl border-2 overflow-hidden transition-all duration-200 active:scale-[0.98] ${
+                  today ? 'border-primary-500 ring-2 ring-primary-100' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-3 p-3 sm:p-4">
+                  {/* Day badge */}
+                  <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0 ${
+                    today ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-900'
+                  }`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${today ? 'text-primary-100' : 'text-gray-500'}`}>
+                      {format(date, 'EEE')}
+                    </span>
+                    <span className="text-xl font-bold leading-tight">{format(date, 'd')}</span>
+                  </div>
+
+                  {/* Meal info */}
+                  <div className="flex-1 min-w-0">
+                    {day.type === 'eating_out' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🍽️</span>
+                        <p className="font-semibold text-gray-900">Eating out / take out</p>
+                      </div>
+                    )}
+                    {day.type === 'leftovers' && meal && (
+                      <div>
+                        <p className="font-semibold text-gray-900">Leftovers</p>
+                        <p className="text-sm text-gray-500 truncate">{toTitleCase(meal.name)}</p>
+                      </div>
+                    )}
+                    {day.type === 'meal' && meal && (
+                      <div>
+                        <p className="font-semibold text-gray-900 truncate">{toTitleCase(meal.name)}</p>
+                        {meal.prepTime > 0 && <p className="text-xs text-gray-500">{meal.prepTime} min</p>}
+                      </div>
+                    )}
+                    {!meal && day.type === 'meal' && (
+                      <p
+                        className="text-gray-400 cursor-text active:bg-gray-100 rounded px-1 py-0.5"
+                        onClick={(e) => { e.stopPropagation(); handleStartEdit(day.date, ''); }}
+                      >
+                        Tap to add meal
+                      </p>
+                    )}
+                    {editingDay === day.date && (
+                      <input
+                        type="text"
+                        value={editedMealName}
+                        onChange={(e) => setEditedMealName(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyDown(e, day)}
+                        onBlur={() => handleSaveEdit(day)}
+                        placeholder="Enter meal name..."
+                        className="w-full font-semibold text-gray-900 border border-primary-500 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 mt-1"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </div>
+
+                  {/* Meal thumbnail */}
+                  {meal && meal.imageUrl && (
+                    <img src={meal.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                  )}
+                  {meal && !meal.imageUrl && (
+                    <MealThumbnail meal={meal} />
+                  )}
+
+                  {/* Chevron for tappable rows */}
+                  {day.type === 'meal' && meal && (
+                    <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Swipe hint for mobile multi-week plans */}
+      {currentPlan.days.length > 7 && (
+        <p className="md:hidden text-center text-xs text-gray-400">
+          Swipe left/right to change weeks
+        </p>
+      )}
 
       {/* Leftover meal picker modal */}
       {leftoverPicker && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm p-5 pb-8 sm:pb-5 max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Pick leftover meal</h3>
               <button
                 onClick={() => {
-                  // Cancel: just save without relinking
                   if (currentPlan) {
                     setCurrentPlan({
                       ...currentPlan,
@@ -557,7 +626,7 @@ export default function ThisWeek() {
                   }
                   setLeftoverPicker(null);
                 }}
-                className="p-1 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-full hover:bg-gray-100 active:bg-gray-200"
               >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -568,29 +637,26 @@ export default function ThisWeek() {
                 {format(parseISO(leftoverPicker.dayDate), 'EEEE')}
               </span>?
             </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {getWeekMeals().map(meal => {
-                const hasError = !meal.imageUrl;
-                return (
-                  <button
-                    key={meal.id}
-                    onClick={() => handlePickLeftoverMeal(meal.id)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors text-left"
-                  >
-                    {meal.imageUrl ? (
-                      <img src={meal.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                    ) : (
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
-                        style={{ backgroundColor: `hsl(${meal.name.length * 40}, 60%, 55%)` }}
-                      >
-                        {meal.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="font-medium text-gray-800 truncate">{toTitleCase(meal.name)}</span>
-                  </button>
-                );
-              })}
+            <div className="space-y-2 overflow-y-auto flex-1">
+              {getWeekMeals().map(meal => (
+                <button
+                  key={meal.id}
+                  onClick={() => handlePickLeftoverMeal(meal.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 border border-gray-200 transition-colors text-left"
+                >
+                  {meal.imageUrl ? (
+                    <img src={meal.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div
+                      className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
+                      style={{ backgroundColor: `hsl(${meal.name.length * 40}, 60%, 55%)` }}
+                    >
+                      {meal.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="font-medium text-gray-800 truncate">{toTitleCase(meal.name)}</span>
+                </button>
+              ))}
               {getWeekMeals().length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">No meals planned this week</p>
               )}

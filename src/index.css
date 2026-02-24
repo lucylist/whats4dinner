@@ -32,6 +32,12 @@ body {
   min-height: 100vh;
 }
 
+/* Touch behavior - prevent overscroll bounce on iOS */
+html {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

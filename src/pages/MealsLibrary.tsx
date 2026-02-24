@@ -476,66 +476,68 @@ export default function MealsLibrary() {
         )}
         
         {/* Search, Sort, and View Toggle */}
-        <div className="flex gap-3">
-          <div className="relative flex-1">
+        <div className="space-y-3">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search meals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 font-medium">Sort:</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 font-medium hidden sm:inline">Sort:</span>
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setSortBy('alphabetical')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    sortBy === 'alphabetical'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  A-Z
+                </button>
+                <button
+                  onClick={() => setSortBy('dateAdded')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    sortBy === 'dateAdded'
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  New
+                </button>
+              </div>
+            </div>
+            {/* View Toggle */}
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setSortBy('alphabetical')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  sortBy === 'alphabetical'
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === 'grid'
                     ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
+                title="Grid view"
               >
-                A-Z
+                <LayoutGrid className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setSortBy('dateAdded')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  sortBy === 'dateAdded'
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === 'list'
                     ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
+                title="List view"
               >
-                Date added
+                <List className="w-5 h-5" />
               </button>
             </div>
-          </div>
-          {/* View Toggle */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-white text-primary-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="Grid view"
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-white text-primary-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="List view"
-            >
-              <List className="w-5 h-5" />
-            </button>
           </div>
         </div>
         
