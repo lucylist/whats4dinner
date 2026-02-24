@@ -52,16 +52,16 @@ export default function Layout({ children }: LayoutProps) {
     <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
       {/* Header — fixed top, opaque, full width */}
       <header className="shrink-0 bg-forest-800 border-b border-forest-500/50 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center justify-center relative">
           <Link to="/calendar" className="group">
             <img
               src={`${import.meta.env.BASE_URL || '/'}images/logo-botanical.png`}
               alt="What's for dinner?"
-              className="h-10 sm:h-12 w-auto"
+              className="h-20 sm:h-24 w-auto"
             />
           </Link>
-          <div className="flex items-center gap-1">
-            {roomId && (
+          {roomId && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
               <button
                 onClick={handleShare}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-cream-400 hover:text-cobalt hover:bg-forest-600 rounded-lg transition-colors"
@@ -79,8 +79,8 @@ export default function Layout({ children }: LayoutProps) {
                   </>
                 )}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </header>
 
