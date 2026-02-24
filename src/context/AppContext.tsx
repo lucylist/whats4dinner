@@ -192,17 +192,27 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
         return;
       }
 
-      // --- Non-Quick (GitHub Pages, local): use Firestore ---
+      // --- Non-Quick (GitHub Pages, local): use Firestore with safety timeout ---
       if (roomId) {
+        const firestoreTimeout = new Promise<null>((resolve) => setTimeout(() => {
+          console.warn('[dinner-app] Firestore init timed out after 8s');
+          resolve(null);
+        }, 8000));
+
         try {
-          const result = await initFirestore(roomId, setMeals, setCurrentPlanState, setInventory, () => cancelled);
+          const result = await Promise.race([
+            initFirestore(roomId, setMeals, setCurrentPlanState, setInventory, () => cancelled),
+            firestoreTimeout
+          ]);
           if (result) {
             unsubs.push(...result.unsubs);
             if (!cancelled) setFirestoreCtx(result.fb);
             if (!cancelled) setIsLoading(false);
             return;
           }
-        } catch { /* fall through */ }
+        } catch (e) {
+          console.error('[dinner-app] Firestore init error:', e);
+        }
       }
 
       if (!cancelled) loadFromLocalStorage();
