@@ -119,9 +119,10 @@ export default function ThisWeek() {
     return { bg, initials };
   };
   
-  const MealThumbnail = ({ meal }: { meal: { name: string; imageUrl?: string } }) => {
+  const MealThumbnail = ({ meal, size = 'md' }: { meal: { name: string; imageUrl?: string }; size?: 'sm' | 'md' }) => {
     const [hasError, setHasError] = React.useState(false);
     const placeholder = getPlaceholderStyle(meal.name);
+    const sizeClass = size === 'sm' ? 'w-10 h-10 rounded-lg' : 'w-14 h-14 rounded-xl';
     
     React.useEffect(() => { setHasError(false); }, [meal.imageUrl]);
     
@@ -130,7 +131,7 @@ export default function ThisWeek() {
         <img
           src={meal.imageUrl}
           alt={meal.name}
-          className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-forest-500/40"
+          className={`${sizeClass} object-cover flex-shrink-0 border border-forest-500/40`}
           onError={() => setHasError(true)}
         />
       );
@@ -138,7 +139,7 @@ export default function ThisWeek() {
     
     return (
       <div 
-        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border border-forest-500/40"
+        className={`${sizeClass} flex items-center justify-center flex-shrink-0 border border-forest-500/40`}
         style={{ backgroundColor: placeholder.bg }}
       >
         <span className="text-cream-300/60 text-xs font-bold">{placeholder.initials}</span>
@@ -381,7 +382,7 @@ export default function ThisWeek() {
                     )}
                     {day.type === 'leftovers' && meal && (
                       <div className="flex items-center gap-2">
-                        <MealThumbnail meal={meal} />
+                        <MealThumbnail meal={meal} size="sm" />
                         <div className="min-w-0">
                           <p className="font-semibold text-sm text-cream-300">Leftovers</p>
                           <p className="text-xs text-cream-500 truncate">{toTitleCase(meal.name)}</p>
@@ -390,7 +391,7 @@ export default function ThisWeek() {
                     )}
                     {day.type === 'meal' && meal && (
                       <div className="flex items-center gap-2">
-                        <MealThumbnail meal={meal} />
+                        <MealThumbnail meal={meal} size="sm" />
                         <div className="min-w-0 flex-1">
                           {editingDay === day.date ? (
                             <input type="text" value={editedMealName} onChange={(e) => setEditedMealName(e.target.value)} onKeyDown={(e) => handleEditKeyDown(e, day)} onBlur={() => handleSaveEdit(day)} className="w-full font-semibold text-sm text-cream-100 bg-forest-800 border border-gold rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gold" autoFocus onClick={(e) => e.stopPropagation()} />
@@ -428,14 +429,15 @@ export default function ThisWeek() {
             const date = parseISO(day.date);
             const meal = day.mealId ? getMeal(day.mealId) : null;
             const today = isToday(date);
+            const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
             
             return (
               <div
                 key={day.date}
                 onClick={() => {
-                  if (day.type === 'meal' && meal) handleViewMeal(meal.id);
+                  if (isClickable) handleViewMeal(meal!.id);
                 }}
-                className={`bg-forest-700 rounded-xl border overflow-hidden transition-all duration-200 active:scale-[0.98] ${
+                className={`bg-forest-700 rounded-xl border overflow-hidden transition-all duration-200 ${isClickable ? 'active:scale-[0.98]' : ''} ${
                   today ? 'border-gold ring-2 ring-gold/20' : 'border-forest-500/60'
                 }`}
               >
@@ -450,18 +452,28 @@ export default function ThisWeek() {
                     <span className="text-xl font-bold leading-tight">{format(date, 'd')}</span>
                   </div>
 
+                  {/* Thumbnail — fixed position after day badge */}
+                  {meal ? (
+                    <MealThumbnail meal={meal} />
+                  ) : day.type === 'eating_out' ? (
+                    <div className="w-14 h-14 rounded-xl bg-terracotta/15 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl">🍽️</span>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-forest-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-cream-500 text-lg">?</span>
+                    </div>
+                  )}
+
                   {/* Meal info */}
                   <div className="flex-1 min-w-0">
                     {day.type === 'eating_out' && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">🍽️</span>
-                        <p className="font-semibold text-cream-100">Eating out</p>
-                      </div>
+                      <p className="font-semibold text-cream-100">Eating out</p>
                     )}
                     {day.type === 'leftovers' && meal && (
                       <div>
-                        <p className="font-semibold text-cream-300">Leftovers</p>
-                        <p className="text-sm text-cream-500 truncate">{toTitleCase(meal.name)}</p>
+                        <p className="font-semibold text-cream-100 truncate">{toTitleCase(meal.name)}</p>
+                        <p className="text-xs text-cream-500">Leftovers</p>
                       </div>
                     )}
                     {day.type === 'meal' && meal && (
@@ -493,14 +505,11 @@ export default function ThisWeek() {
                     )}
                   </div>
 
-                  {/* Meal thumbnail */}
-                  {meal && meal.imageUrl && (
-                    <img src={meal.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-forest-500/40" />
-                  )}
-                  {meal && !meal.imageUrl && <MealThumbnail meal={meal} />}
-
-                  {day.type === 'meal' && meal && (
+                  {/* Chevron — always present for clickable rows, invisible placeholder otherwise */}
+                  {isClickable ? (
                     <ChevronRight className="w-5 h-5 text-cream-500 flex-shrink-0" />
+                  ) : (
+                    <div className="w-5 flex-shrink-0" />
                   )}
                 </div>
               </div>
