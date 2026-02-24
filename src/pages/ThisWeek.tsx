@@ -438,7 +438,7 @@ export default function ThisWeek() {
                         <span className="text-3xl">🍽️</span>
                       </div>
                       <div className="px-2.5 py-2">
-                        <p className="text-xs font-semibold text-cream-200 text-center">Eating out</p>
+                        <p className="text-xs font-semibold text-cream-100 line-clamp-2 leading-snug">Eating out</p>
                       </div>
                     </>
                   )}
