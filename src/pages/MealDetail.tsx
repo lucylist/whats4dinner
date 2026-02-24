@@ -205,7 +205,7 @@ export default function MealDetail() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="text-3xl font-serif font-bold text-cream-100 w-full border-0 border-b-2 border-transparent hover:border-forest-500 focus:border-gold focus:ring-0 bg-transparent px-0 py-1 transition-colors"
+                className="text-3xl font-serif text-cream-100 w-full border-0 border-b-2 border-transparent hover:border-forest-500 focus:border-gold focus:ring-0 bg-transparent px-0 py-1 transition-colors"
                 placeholder="Meal name"
               />
             </div>

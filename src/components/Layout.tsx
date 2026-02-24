@@ -100,7 +100,6 @@ export default function Layout({ children }: LayoutProps) {
               <img src={`${basePath}images/nav-icon-meals.png`} alt="" className={navIconClass('/meals')} />
               <span className="text-[10px] sm:text-xs font-medium tracking-wide">Meals</span>
             </Link>
-            {/* My Fridge - hidden for MVP */}
             <Link to="/plan-week" className={navLinkClass('/plan-week')}>
               <img src={`${basePath}images/nav-icon-preferences.png`} alt="" className={navIconClass('/plan-week')} />
               <span className="text-[10px] sm:text-xs font-medium tracking-wide">Preferences</span>
