@@ -25,8 +25,8 @@ export default function Layout({ children }: LayoutProps) {
 
   const navIconClass = (path: string) => {
     return isActive(path)
-      ? "w-7 h-7 mb-0.5 rounded-md object-contain brightness-125"
-      : "w-7 h-7 mb-0.5 rounded-md object-contain opacity-60 brightness-75";
+      ? "w-8 h-8 mb-0.5 object-contain brightness-110"
+      : "w-8 h-8 mb-0.5 object-contain opacity-50 brightness-75";
   };
 
   const handleShare = async () => {
