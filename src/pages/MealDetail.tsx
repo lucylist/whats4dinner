@@ -172,13 +172,17 @@ export default function MealDetail() {
   const displayImage = formData.imageUrl || meal.imageUrl;
   
   return (
-    <div className="min-h-full -mx-4 px-4 pt-6 pb-24" style={{
+    <div className="min-h-full pt-6 pb-24" style={{
       backgroundImage: `
         linear-gradient(0deg, rgba(62,100,62,0.45) 50%, transparent 50%),
         linear-gradient(90deg, rgba(62,100,62,0.45) 50%, transparent 50%)
       `,
       backgroundSize: '28px 28px',
-      backgroundColor: '#1e3a1e'
+      backgroundColor: '#1e3a1e',
+      marginLeft: 'calc(-50vw + 50%)',
+      marginRight: 'calc(-50vw + 50%)',
+      paddingLeft: 'calc(50vw - 50% + 1rem)',
+      paddingRight: 'calc(50vw - 50% + 1rem)',
     }}>
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
