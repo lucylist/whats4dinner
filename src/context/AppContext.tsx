@@ -10,51 +10,7 @@ import {
   saveInventoryItem as saveInventoryItemToStorage,
   deleteInventoryItem as deleteInventoryItemFromStorage
 } from '../utils/storage';
-import { getQuickDB } from '../utils/quick';
-import { db as firestoreDb } from '../config/firebase';
-
-function qCol(name: string, roomId: string | null) {
-  return roomId ? `${name}_${roomId}` : name;
-}
-
-async function migrateQuickDBToRoom(qdb: any, roomId: string) {
-  try {
-    const roomMeals = await qdb.collection(qCol('meals', roomId)).find();
-    if (roomMeals && roomMeals.length > 0) return;
-
-    const flatMeals = await qdb.collection('meals').find();
-    if (!flatMeals || flatMeals.length === 0) return;
-
-    for (const meal of flatMeals) {
-      await qdb.collection(qCol('meals', roomId)).create(meal);
-    }
-    const flatPlans = await qdb.collection('plans').find();
-    if (flatPlans) {
-      for (const plan of flatPlans) {
-        await qdb.collection(qCol('plans', roomId)).create(plan);
-      }
-    }
-    const flatInv = await qdb.collection('inventory').find();
-    if (flatInv) {
-      for (const item of flatInv) {
-        await qdb.collection(qCol('inventory', roomId)).create(item);
-      }
-    }
-    console.log('Migrated Quick DB data to room:', roomId);
-  } catch (e) {
-    console.log('Quick DB migration failed (non-fatal):', e);
-  }
-}
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  Unsubscribe
-} from 'firebase/firestore';
+import { getQuickDB, isQuickPlatform } from '../utils/quick';
 
 interface AppContextType {
   meals: Meal[];
@@ -81,50 +37,88 @@ interface AppProviderProps {
   roomId?: string | null;
 }
 
-function roomCollection(roomId: string, name: string) {
-  return collection(firestoreDb, 'rooms', roomId, name);
+function qCol(name: string, roomId: string | null) {
+  return roomId ? `${name}_${roomId}` : name;
 }
 
-function roomDoc(roomId: string, colName: string, docId: string) {
-  return doc(firestoreDb, 'rooms', roomId, colName, docId);
-}
+// --- Lazy Firestore helpers (only used on non-Quick platforms) ---
+let _fb: any = null;
 
-async function testFirestoreConnectivity(roomId: string): Promise<boolean> {
+async function loadFirestore() {
+  if (_fb) return _fb;
   try {
-    console.log('[dinner-app] Testing Firestore connectivity for room:', roomId);
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore timeout')), 5000)
-    );
-    const snapshot = await Promise.race([getDocs(roomCollection(roomId, 'meals')), timeout]);
-    console.log('[dinner-app] Firestore OK — found', (snapshot as any).size, 'meals');
-    return true;
-  } catch (e) {
-    console.warn('[dinner-app] Firestore failed:', e);
-    return false;
+    const [{ db }, mod] = await Promise.all([
+      import('../config/firebase'),
+      import('firebase/firestore')
+    ]);
+    _fb = { db, ...mod };
+    return _fb;
+  } catch {
+    return null;
   }
 }
 
-async function migrateLocalStorageToFirestore(roomId: string) {
-  const localMeals = getAllMeals();
-  const localPlan = getCurrentWeeklyPlan();
-  const localInventory = getAllInventoryItems();
+async function initFirestore(roomId: string, setMeals: any, setCurrentPlanState: any, setInventory: any, cancelled: () => boolean) {
+  const fb = await loadFirestore();
+  if (!fb) return null;
 
-  if (localMeals.length === 0 && !localPlan && localInventory.length === 0) return;
+  const { db, collection, getDocs, onSnapshot, query, setDoc, doc } = fb;
+  const roomCol = (name: string) => collection(db, 'rooms', roomId, name);
+  const roomDoc = (colName: string, docId: string) => doc(db, 'rooms', roomId, colName, docId);
 
-  const existingMeals = await getDocs(roomCollection(roomId, 'meals'));
-  if (existingMeals.size > 0) return;
+  try {
+    const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
+    const snapshot = await Promise.race([getDocs(roomCol('meals')), timeout]);
+    console.log('[dinner-app] Firestore OK —', (snapshot as any).size, 'meals');
+  } catch (e) {
+    console.log('[dinner-app] Firestore not reachable:', e);
+    return null;
+  }
 
-  const writes: Promise<void>[] = [];
-  for (const meal of localMeals) {
-    writes.push(setDoc(roomDoc(roomId, 'meals', meal.id), meal));
-  }
-  if (localPlan) {
-    writes.push(setDoc(roomDoc(roomId, 'plans', localPlan.id), localPlan));
-  }
-  for (const item of localInventory) {
-    writes.push(setDoc(roomDoc(roomId, 'inventory', item.id), item));
-  }
-  await Promise.all(writes);
+  // Migrate localStorage to Firestore
+  try {
+    const localMeals = getAllMeals();
+    const localPlan = getCurrentWeeklyPlan();
+    const localInventory = getAllInventoryItems();
+    if (localMeals.length > 0 || localPlan || localInventory.length > 0) {
+      const existing = await getDocs(roomCol('meals'));
+      if (existing.size === 0) {
+        const writes: Promise<void>[] = [];
+        for (const meal of localMeals) writes.push(setDoc(roomDoc('meals', meal.id), meal));
+        if (localPlan) writes.push(setDoc(roomDoc('plans', localPlan.id), localPlan));
+        for (const item of localInventory) writes.push(setDoc(roomDoc('inventory', item.id), item));
+        await Promise.all(writes);
+      }
+    }
+  } catch { /* non-fatal */ }
+
+  const unsubs: (() => void)[] = [];
+
+  unsubs.push(
+    onSnapshot(query(roomCol('meals')), (snap: any) => {
+      if (cancelled()) return;
+      setMeals(snap.docs.map((d: any) => d.data() as Meal));
+    }, () => {})
+  );
+
+  unsubs.push(
+    onSnapshot(query(roomCol('plans')), (snap: any) => {
+      if (cancelled()) return;
+      const docs = snap.docs.map((d: any) => d.data() as WeeklyPlan);
+      const plan = docs[0] || null;
+      if (plan && !plan.duration) { plan.duration = 'week'; plan.durationCount = 1; }
+      setCurrentPlanState(plan);
+    }, () => {})
+  );
+
+  unsubs.push(
+    onSnapshot(query(roomCol('inventory')), (snap: any) => {
+      if (cancelled()) return;
+      setInventory(snap.docs.map((d: any) => d.data() as InventoryItem));
+    }, () => {})
+  );
+
+  return { unsubs, fb };
 }
 
 export function AppProvider({ children, roomId = null }: AppProviderProps) {
@@ -134,128 +128,88 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [quickDB, setQuickDB] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [useFirestore, setUseFirestore] = useState(false);
+  const [firestoreCtx, setFirestoreCtx] = useState<any>(null);
 
   useEffect(() => {
-    const unsubs: Unsubscribe[] = [];
     let cancelled = false;
-
-    const initDataInner = async () => {
-      console.log('[dinner-app] initData — roomId:', roomId);
-
-      if (roomId) {
-        const firestoreOk = await testFirestoreConnectivity(roomId);
-        console.log('[dinner-app] Firestore reachable:', firestoreOk);
-
-        if (firestoreOk) {
-          try {
-            await migrateLocalStorageToFirestore(roomId);
-            console.log('[dinner-app] Migration complete');
-          } catch (e) {
-            console.log('Migration failed (non-fatal):', e);
-          }
-
-          unsubs.push(
-            onSnapshot(query(roomCollection(roomId, 'meals')), (snapshot) => {
-              if (cancelled) return;
-              setMeals(snapshot.docs.map(d => d.data() as Meal));
-            }, () => {})
-          );
-
-          unsubs.push(
-            onSnapshot(query(roomCollection(roomId, 'plans')), (snapshot) => {
-              if (cancelled) return;
-              const docs = snapshot.docs.map(d => d.data() as WeeklyPlan);
-              const plan = docs[0] || null;
-              if (plan && !plan.duration) {
-                plan.duration = 'week';
-                plan.durationCount = 1;
-              }
-              setCurrentPlanState(plan);
-            }, () => {})
-          );
-
-          unsubs.push(
-            onSnapshot(query(roomCollection(roomId, 'inventory')), (snapshot) => {
-              if (cancelled) return;
-              setInventory(snapshot.docs.map(d => d.data() as InventoryItem));
-            }, () => {})
-          );
-
-          setUseFirestore(true);
-          return;
-        } else {
-          console.log('Firestore not reachable, falling back...');
-        }
-      }
-
-      const qdb = await getQuickDB();
-      setQuickDB(qdb);
-
-      if (qdb) {
-        if (roomId) {
-          await migrateQuickDBToRoom(qdb, roomId);
-        }
-        try {
-          const [dbMeals, dbPlans, dbInventory] = await Promise.all([
-            qdb.collection(qCol('meals', roomId)).find(),
-            qdb.collection(qCol('plans', roomId)).find(),
-            qdb.collection(qCol('inventory', roomId)).find()
-          ]);
-          if (!cancelled) {
-            setMeals(dbMeals || []);
-            const loadedPlan = dbPlans?.[0] || null;
-            if (loadedPlan && !loadedPlan.duration) {
-              loadedPlan.duration = 'week';
-              loadedPlan.durationCount = 1;
-            }
-            setCurrentPlanState(loadedPlan);
-            setInventory(dbInventory || []);
-          }
-        } catch (e) {
-          if (!cancelled) loadFromLocalStorage();
-        }
-      } else {
-        if (!cancelled) loadFromLocalStorage();
-      }
-    };
-
-    const initData = async () => {
-      setIsLoading(true);
-      let resolved = false;
-
-      const timeoutId = setTimeout(() => {
-        if (!resolved && !cancelled) {
-          console.warn('Init timed out after 8s – falling back to localStorage');
-          loadFromLocalStorage();
-          setIsLoading(false);
-        }
-      }, 8000);
-
-      try {
-        await initDataInner();
-      } catch (e) {
-        console.error('Init error:', e);
-        if (!cancelled) loadFromLocalStorage();
-      }
-
-      resolved = true;
-      clearTimeout(timeoutId);
-      if (!cancelled) setIsLoading(false);
-    };
+    const unsubs: (() => void)[] = [];
 
     const loadFromLocalStorage = () => {
       setMeals(getAllMeals());
-      const loadedPlan = getCurrentWeeklyPlan();
-      if (loadedPlan && !loadedPlan.duration) {
-        loadedPlan.duration = 'week';
-        loadedPlan.durationCount = 1;
-      }
-      setCurrentPlanState(loadedPlan);
+      const p = getCurrentWeeklyPlan();
+      if (p && !p.duration) { p.duration = 'week'; p.durationCount = 1; }
+      setCurrentPlanState(p);
       setInventory(getAllInventoryItems());
     };
 
-    initData();
+    const init = async () => {
+      setIsLoading(true);
+
+      // --- Quick platform: use Quick DB, skip Firestore ---
+      if (isQuickPlatform()) {
+        const qdb = await getQuickDB();
+        if (!cancelled) setQuickDB(qdb);
+
+        if (qdb) {
+          // Migrate flat collections to room-specific if needed
+          if (roomId) {
+            try {
+              const roomMeals = await qdb.collection(qCol('meals', roomId)).find();
+              if (!roomMeals || roomMeals.length === 0) {
+                const flat = await qdb.collection('meals').find();
+                if (flat && flat.length > 0) {
+                  for (const m of flat) await qdb.collection(qCol('meals', roomId)).create(m);
+                  const fp = await qdb.collection('plans').find();
+                  if (fp) for (const p of fp) await qdb.collection(qCol('plans', roomId)).create(p);
+                  const fi = await qdb.collection('inventory').find();
+                  if (fi) for (const i of fi) await qdb.collection(qCol('inventory', roomId)).create(i);
+                }
+              }
+            } catch { /* non-fatal */ }
+          }
+
+          try {
+            const [dbMeals, dbPlans, dbInv] = await Promise.all([
+              qdb.collection(qCol('meals', roomId)).find(),
+              qdb.collection(qCol('plans', roomId)).find(),
+              qdb.collection(qCol('inventory', roomId)).find()
+            ]);
+            if (!cancelled) {
+              setMeals(dbMeals || []);
+              const plan = dbPlans?.[0] || null;
+              if (plan && !plan.duration) { plan.duration = 'week'; plan.durationCount = 1; }
+              setCurrentPlanState(plan);
+              setInventory(dbInv || []);
+            }
+          } catch {
+            if (!cancelled) loadFromLocalStorage();
+          }
+        } else {
+          if (!cancelled) loadFromLocalStorage();
+        }
+
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
+      // --- Non-Quick (GitHub Pages, local): use Firestore ---
+      if (roomId) {
+        try {
+          const result = await initFirestore(roomId, setMeals, setCurrentPlanState, setInventory, () => cancelled);
+          if (result) {
+            unsubs.push(...result.unsubs);
+            if (!cancelled) setFirestoreCtx(result.fb);
+            if (!cancelled) setIsLoading(false);
+            return;
+          }
+        } catch { /* fall through */ }
+      }
+
+      if (!cancelled) loadFromLocalStorage();
+      if (!cancelled) setIsLoading(false);
+    };
+
+    init();
 
     return () => {
       cancelled = true;
@@ -263,55 +217,44 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
     };
   }, [roomId]);
 
+  // --- Firestore write helpers ---
+  const fsWrite = async (colName: string, docId: string, data: any, merge = false) => {
+    if (!firestoreCtx || !roomId) return false;
+    try {
+      const { db, setDoc, doc } = firestoreCtx;
+      await setDoc(doc(db, 'rooms', roomId, colName, docId), data, merge ? { merge: true } : {});
+      return true;
+    } catch { return false; }
+  };
+
+  const fsDelete = async (colName: string, docId: string) => {
+    if (!firestoreCtx || !roomId) return false;
+    try {
+      const { db, deleteDoc, doc } = firestoreCtx;
+      await deleteDoc(doc(db, 'rooms', roomId, colName, docId));
+      return true;
+    } catch { return false; }
+  };
+
   // --- Meal operations ---
   const addMeal = async (meal: Meal) => {
     saveMealToStorage(meal);
-
-    if (useFirestore && roomId) {
-      try {
-        await setDoc(roomDoc(roomId, 'meals', meal.id), meal);
-        return;
-      } catch (e) { console.error('Firestore save error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('meals', roomId)).create(meal); } catch (e) { /* noop */ }
-    }
-
+    if (await fsWrite('meals', meal.id, meal)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).create(meal); } catch {} }
     setMeals(prev => [...prev, meal]);
   };
 
   const updateMeal = async (meal: Meal) => {
     saveMealToStorage(meal);
-
-    if (useFirestore && roomId) {
-      try {
-        await setDoc(roomDoc(roomId, 'meals', meal.id), meal, { merge: true });
-        return;
-      } catch (e) { console.error('Firestore update error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('meals', roomId)).update(meal.id, meal); } catch (e) { /* noop */ }
-    }
-
+    if (await fsWrite('meals', meal.id, meal, true)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).update(meal.id, meal); } catch {} }
     setMeals(prev => prev.map(m => m.id === meal.id ? meal : m));
   };
 
   const deleteMeal = async (mealId: string) => {
     deleteMealFromStorage(mealId);
-
-    if (useFirestore && roomId) {
-      try {
-        await deleteDoc(roomDoc(roomId, 'meals', mealId));
-        return;
-      } catch (e) { console.error('Firestore delete error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('meals', roomId)).delete(mealId); } catch (e) { /* noop */ }
-    }
-
+    if (await fsDelete('meals', mealId)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('meals', roomId)).delete(mealId); } catch {} }
     setMeals(prev => prev.filter(m => m.id !== mealId));
   };
 
@@ -320,97 +263,51 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   // --- Weekly plan operations ---
   const setCurrentPlan = async (plan: WeeklyPlan | null) => {
     setCurrentWeeklyPlan(plan);
-
-    if (useFirestore && roomId && plan) {
-      try {
-        await setDoc(roomDoc(roomId, 'plans', plan.id), plan);
-        return;
-      } catch (e) { console.error('Firestore plan save error:', e); }
-    }
-
+    if (plan && await fsWrite('plans', plan.id, plan)) return;
     if (quickDB && plan) {
       try {
         const col = qCol('plans', roomId);
         const existing = await quickDB.collection(col).find();
         if (existing?.length > 0) await quickDB.collection(col).update(existing[0].id, plan);
         else await quickDB.collection(col).create(plan);
-      } catch (e) { /* noop */ }
+      } catch {}
     }
-
     setCurrentPlanState(plan);
   };
 
   const updateCurrentPlan = async (plan: WeeklyPlan) => {
     setCurrentWeeklyPlan(plan);
-
-    if (useFirestore && roomId) {
-      try {
-        await setDoc(roomDoc(roomId, 'plans', plan.id), plan, { merge: true });
-        return;
-      } catch (e) { console.error('Firestore plan update error:', e); }
-    }
-
+    if (await fsWrite('plans', plan.id, plan, true)) return;
     if (quickDB) {
       try {
         const col = qCol('plans', roomId);
         const existing = await quickDB.collection(col).find();
         if (existing?.length > 0) await quickDB.collection(col).update(existing[0].id, plan);
         else await quickDB.collection(col).create(plan);
-      } catch (e) { /* noop */ }
+      } catch {}
     }
-
     setCurrentPlanState(plan);
   };
 
   // --- Inventory operations ---
   const addInventoryItem = async (item: InventoryItem) => {
     saveInventoryItemToStorage(item);
-
-    if (useFirestore && roomId) {
-      try {
-        await setDoc(roomDoc(roomId, 'inventory', item.id), item);
-        return;
-      } catch (e) { console.error('Firestore inventory save error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('inventory', roomId)).create(item); } catch (e) { /* noop */ }
-    }
-
+    if (await fsWrite('inventory', item.id, item)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).create(item); } catch {} }
     setInventory(prev => [...prev, item]);
   };
 
   const updateInventoryItem = async (item: InventoryItem) => {
     saveInventoryItemToStorage(item);
-
-    if (useFirestore && roomId) {
-      try {
-        await setDoc(roomDoc(roomId, 'inventory', item.id), item, { merge: true });
-        return;
-      } catch (e) { console.error('Firestore inventory update error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('inventory', roomId)).update(item.id, item); } catch (e) { /* noop */ }
-    }
-
+    if (await fsWrite('inventory', item.id, item, true)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).update(item.id, item); } catch {} }
     setInventory(prev => prev.map(i => i.id === item.id ? item : i));
   };
 
   const deleteInventoryItem = async (itemId: string) => {
     deleteInventoryItemFromStorage(itemId);
-
-    if (useFirestore && roomId) {
-      try {
-        await deleteDoc(roomDoc(roomId, 'inventory', itemId));
-        return;
-      } catch (e) { console.error('Firestore inventory delete error:', e); }
-    }
-
-    if (quickDB) {
-      try { await quickDB.collection(qCol('inventory', roomId)).delete(itemId); } catch (e) { /* noop */ }
-    }
-
+    if (await fsDelete('inventory', itemId)) return;
+    if (quickDB) { try { await quickDB.collection(qCol('inventory', roomId)).delete(itemId); } catch {} }
     setInventory(prev => prev.filter(i => i.id !== itemId));
   };
 
