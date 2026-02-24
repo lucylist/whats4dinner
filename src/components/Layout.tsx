@@ -83,7 +83,17 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
       {/* Header — fixed top, opaque, full width */}
-      <header className="shrink-0 bg-forest-800 border-b border-forest-500/50 z-40 overflow-hidden">
+      <header
+        className="shrink-0 border-b border-forest-500/50 z-40 overflow-hidden"
+        style={{
+          backgroundColor: '#1e3a1e',
+          backgroundImage: `
+            linear-gradient(0deg, rgba(62,100,62,0.35) 50%, transparent 50%),
+            linear-gradient(90deg, rgba(62,100,62,0.35) 50%, transparent 50%)
+          `,
+          backgroundSize: '20px 20px',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-1 sm:px-4 pt-0 pb-2 sm:pb-3 flex items-center justify-center relative">
           <Link to="/calendar" className="group -mt-3 sm:-mt-5">
             <img
