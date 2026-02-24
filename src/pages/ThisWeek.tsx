@@ -31,7 +31,7 @@ export default function ThisWeek() {
           <Calendar className="w-10 h-10 text-gold" />
         </div>
         <div>
-          <h2 className="text-3xl sm:text-4xl font-serif font-bold text-cream-100 mb-2">No Calendar Yet</h2>
+          <h2 className="text-4xl sm:text-5xl font-serif font-bold text-cream-100 mb-2">No Calendar Yet</h2>
           <p className="text-cream-400 mb-6">
             Plan your week and we'll fill in the meals for you.
           </p>
@@ -273,7 +273,7 @@ export default function ThisWeek() {
       {/* Header */}
       <div className="flex justify-between items-center gap-3">
         <div className="min-w-0">
-          <h2 className="text-3xl sm:text-4xl font-serif font-bold text-cream-100 truncate">
+          <h2 className="text-4xl sm:text-5xl font-serif font-bold text-cream-100 truncate">
             This Week's Menu
           </h2>
           <p className="text-sm sm:text-base text-cream-400 mt-0.5">
