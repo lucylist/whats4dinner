@@ -259,9 +259,10 @@ export default function PlanWeek() {
       <div className="pb-8">
         <Button
           fullWidth
+          size="lg"
           onClick={handleGenerate}
           disabled={isGenerating || meals.length === 0 || cookingPerWeek < 1}
-          className="flex items-center justify-center gap-2 text-lg py-4 rounded-2xl"
+          className="flex items-center justify-center gap-2"
         >
           <Sparkles className="w-5 h-5" />
           {isGenerating ? 'Generating...' : `Generate my ${durationLabel}`}

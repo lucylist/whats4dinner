@@ -282,7 +282,6 @@ export default function ThisWeek() {
         </div>
         
         <Button
-          variant="secondary"
           onClick={() => {
             const plan = generateWeeklyPlan(meals, new Date(), {
               duration: currentPlan.duration || 'week',
