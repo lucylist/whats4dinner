@@ -376,7 +376,7 @@ export default function ThisWeek() {
                   <div className={`text-[10px] font-bold uppercase tracking-widest ${today ? 'text-terracotta' : 'text-cream-500'}`}>
                     {format(date, 'EEE')}
                   </div>
-                  <div className={`text-xl font-bold leading-tight ${today ? 'text-terracotta' : 'text-cream-100'}`}>
+                  <div className={`text-xl font-serif font-bold leading-tight ${today ? 'text-terracotta' : 'text-cream-100'}`}>
                     {format(date, 'd')}
                   </div>
                 </div>
@@ -426,9 +426,9 @@ export default function ThisWeek() {
                     </>
                   )}
                   {day.type === 'eating_out' && (
-                    <div className="flex-1 flex flex-col items-center justify-center py-4 px-2">
-                      <div className="w-12 h-12 rounded-full bg-terracotta/15 flex items-center justify-center mb-2">
-                        <span className="text-xl">🍽️</span>
+                    <div className="flex-1 flex flex-col items-center justify-center px-2 min-h-[8rem]">
+                      <div className="w-14 h-14 rounded-full bg-terracotta/10 flex items-center justify-center mb-2">
+                        <span className="text-2xl">🍽️</span>
                       </div>
                       <p className="text-xs font-semibold text-cream-300">Eating out</p>
                     </div>
@@ -474,7 +474,7 @@ export default function ThisWeek() {
                     <span className={`text-[10px] font-semibold uppercase tracking-wider ${today ? 'text-terracotta/70' : 'text-cream-400'}`}>
                       {format(date, 'EEE')}
                     </span>
-                    <span className="text-xl font-bold leading-tight">{format(date, 'd')}</span>
+                    <span className="text-xl font-serif font-bold leading-tight">{format(date, 'd')}</span>
                   </div>
 
                   {/* Thumbnail — fixed position after day badge */}
