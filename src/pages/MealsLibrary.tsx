@@ -116,7 +116,7 @@ export default function MealsLibrary() {
         <div className="pt-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-4xl sm:text-5xl font-serif font-bold text-cream-100">Meals</h2>
-            <span className="px-2.5 py-0.5 bg-gold/20 text-gold rounded-full text-sm font-semibold">
+            <span className="px-2.5 py-0.5 bg-cobalt/20 text-cobalt rounded-full text-sm font-semibold">
               {meals.length}
             </span>
           </div>
@@ -137,12 +137,12 @@ export default function MealsLibrary() {
 
         {/* Quick Add Interface */}
         {showQuickAdd && (
-          <div className="bg-forest-700 border border-gold/30 rounded-xl p-5">
+          <div className="bg-forest-700 border border-cobalt/30 rounded-xl p-5">
             <h3 className="text-lg font-serif font-semibold text-cream-100 mb-3">Add a recipe</h3>
             <form onSubmit={handleQuickAddMeal} className="flex gap-3">
               <div className="relative flex-1">
                 {inputIsUrl && (
-                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gold" />
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cobalt" />
                 )}
                 <input
                   type="text"
@@ -223,7 +223,7 @@ export default function MealsLibrary() {
                 onClick={() => setSortBy('alphabetical')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   sortBy === 'alphabetical'
-                    ? 'bg-gold/20 text-gold'
+                    ? 'bg-cobalt/20 text-cobalt'
                     : 'text-cream-400 hover:text-cream-100'
                 }`}
               >
@@ -233,7 +233,7 @@ export default function MealsLibrary() {
                 onClick={() => setSortBy('dateAdded')}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   sortBy === 'dateAdded'
-                    ? 'bg-gold/20 text-gold'
+                    ? 'bg-cobalt/20 text-cobalt'
                     : 'text-cream-400 hover:text-cream-100'
                 }`}
               >

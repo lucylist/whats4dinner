@@ -44,7 +44,7 @@ function App() {
   if (!checked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-forest-800">
-        <div className="animate-spin w-8 h-8 border-4 border-gold border-t-transparent rounded-full mx-auto"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-cobalt border-t-transparent rounded-full mx-auto"></div>
       </div>
     );
   }

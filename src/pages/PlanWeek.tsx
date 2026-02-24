@@ -103,7 +103,7 @@ export default function PlanWeek() {
       {/* Meal library count */}
       {meals.length > 0 ? (
         <div className="flex items-center gap-2 text-sm text-cream-300">
-          <ChefHat className="w-4 h-4 text-gold" />
+          <ChefHat className="w-4 h-4 text-terracotta" />
           <span>{meals.length} recipes in your library</span>
         </div>
       ) : (
@@ -113,7 +113,7 @@ export default function PlanWeek() {
           </p>
           <button
             onClick={() => navigate('/meals')}
-            className="mt-2 text-sm font-semibold text-gold underline"
+            className="mt-2 text-sm font-semibold text-cobalt underline"
           >
             Go to Meals →
           </button>
@@ -221,7 +221,7 @@ export default function PlanWeek() {
                 type === 'cook'
                   ? 'bg-forest-300/20 text-forest-100'
                   : type === 'leftover'
-                  ? 'bg-gold/15 text-gold'
+                  ? 'bg-terracotta/15 text-terracotta'
                   : 'bg-forest-600 text-cream-300'
               }`}>
                 {type === 'cook' && <ChefHat className="w-5 h-5 sm:w-6 sm:h-6" />}
@@ -239,7 +239,7 @@ export default function PlanWeek() {
             <span className="text-cream-300 font-medium">{cookingPerWeek} cooking</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-gold" />
+            <div className="w-3 h-3 rounded-full bg-terracotta" />
             <span className="text-cream-300 font-medium">{leftoversPerWeek} leftovers</span>
           </div>
           <div className="flex items-center gap-1.5">

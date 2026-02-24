@@ -115,7 +115,7 @@ export default function MealCard({ meal, onClick, onUpdateImage }: MealCardProps
       
       {/* Name — centered, serif, warm tone */}
       <div className="px-3 sm:px-4 pt-2 pb-3 sm:pb-4 text-center">
-        <h3 className="font-serif font-semibold text-cream-100 text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-gold transition-colors">
+        <h3 className="font-serif font-semibold text-cream-100 text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-cobalt-light transition-colors">
           {toTitleCase(meal.name)}
         </h3>
       </div>

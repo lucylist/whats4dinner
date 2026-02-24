@@ -28,7 +28,7 @@ export default function ThisWeek() {
     return (
       <div className="text-center py-16 space-y-6">
         <div className="w-20 h-20 mx-auto rounded-2xl bg-forest-700 border border-forest-500/60 flex items-center justify-center">
-          <Calendar className="w-10 h-10 text-gold" />
+          <Calendar className="w-10 h-10 text-cobalt" />
         </div>
         <div>
           <h2 className="text-4xl sm:text-5xl font-serif font-bold text-cream-100 mb-2">No Calendar Yet</h2>
@@ -350,15 +350,15 @@ export default function ThisWeek() {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, day.date)}
                 className={`bg-forest-700 rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 ${
-                  today ? 'border-gold ring-2 ring-gold/20' : 'border-forest-500/60'
-                } ${isDragOver ? 'border-gold/60 bg-forest-600 scale-105 shadow-lg shadow-forest-900/50' : ''}`}
+                  today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/60'
+                } ${isDragOver ? 'border-cobalt/60 bg-forest-600 scale-105 shadow-lg shadow-forest-900/50' : ''}`}
               >
                 {/* Day header */}
-                <div className={`p-3 text-center ${today ? 'bg-gold/20' : 'bg-forest-600/50'}`}>
-                  <div className={`text-xs font-semibold uppercase tracking-wide ${today ? 'text-gold' : 'text-cream-400'}`}>
+                <div className={`p-3 text-center ${today ? 'bg-terracotta/15' : 'bg-forest-600/50'}`}>
+                  <div className={`text-xs font-semibold uppercase tracking-wide ${today ? 'text-terracotta' : 'text-cream-400'}`}>
                     {format(date, 'EEE')}
                   </div>
-                  <div className={`text-2xl font-bold mt-1 ${today ? 'text-gold' : 'text-cream-100'}`}>
+                  <div className={`text-2xl font-bold mt-1 ${today ? 'text-terracotta' : 'text-cream-100'}`}>
                     {format(date, 'd')}
                   </div>
                 </div>
@@ -414,7 +414,7 @@ export default function ThisWeek() {
                     )}
                   </div>
                   {day.type === 'meal' && meal && (
-                    <button onClick={() => handleViewMeal(meal.id)} className="mt-2 w-full py-1.5 px-2 text-xs font-medium text-gold hover:bg-gold/10 rounded transition-colors">View recipe →</button>
+                    <button onClick={() => handleViewMeal(meal.id)} className="mt-2 w-full py-1.5 px-2 text-xs font-medium text-cobalt hover:bg-cobalt/10 rounded transition-colors">View recipe →</button>
                   )}
                 </div>
               </div>
@@ -437,15 +437,15 @@ export default function ThisWeek() {
                   if (isClickable) handleViewMeal(meal!.id);
                 }}
                 className={`bg-forest-700 rounded-xl border overflow-hidden transition-all duration-200 ${isClickable ? 'active:scale-[0.98]' : ''} ${
-                  today ? 'border-gold ring-2 ring-gold/20' : 'border-forest-500/60'
+                  today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/60'
                 }`}
               >
                 <div className="flex items-center gap-3 p-3 sm:p-4">
                   {/* Day badge */}
                   <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl flex-shrink-0 ${
-                    today ? 'bg-gold/20 text-gold' : 'bg-forest-600 text-cream-100'
+                    today ? 'bg-terracotta/15 text-terracotta' : 'bg-forest-600 text-cream-100'
                   }`}>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${today ? 'text-gold/70' : 'text-cream-400'}`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${today ? 'text-terracotta/70' : 'text-cream-400'}`}>
                       {format(date, 'EEE')}
                     </span>
                     <span className="text-xl font-bold leading-tight">{format(date, 'd')}</span>

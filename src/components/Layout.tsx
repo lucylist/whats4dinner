@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
             {roomId && (
               <button
                 onClick={handleShare}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-cream-400 hover:text-gold hover:bg-forest-600 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-cream-400 hover:text-cobalt hover:bg-forest-600 rounded-lg transition-colors"
                 title="Share with family"
               >
                 {copied ? (

@@ -47,7 +47,7 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
               className="w-full flex items-center gap-3 bg-forest-700 hover:bg-forest-600 text-cream-100 rounded-xl px-4 py-3 transition-all border border-forest-500/60 hover:border-gold/30"
             >
               <div className="w-9 h-9 bg-forest-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Users className="w-4 h-4 text-gold" />
+                <Users className="w-4 h-4 text-cobalt" />
               </div>
               <div className="text-left">
                 <div className="font-semibold text-sm">Join an existing library</div>

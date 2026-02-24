@@ -360,7 +360,7 @@ export default function MealDetail() {
                     <div className="flex flex-wrap gap-2">
                       {formData.tagsText.split(',').map((tag, index) => (
                         tag.trim() && (
-                          <span key={index} className="px-3 py-1 bg-gold/15 text-gold rounded-full text-sm">
+                          <span key={index} className="px-3 py-1 bg-terracotta/15 text-terracotta-light rounded-full text-sm">
                             {tag.trim()}
                           </span>
                         )
