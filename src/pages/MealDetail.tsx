@@ -172,7 +172,16 @@ export default function MealDetail() {
   const displayImage = formData.imageUrl || meal.imageUrl;
   
   return (
-    <div className="max-w-4xl mx-auto pt-6 space-y-6 pb-24">
+    <div className="min-h-full -mx-4 px-4 pt-6 pb-24" style={{
+      backgroundImage: `
+        linear-gradient(45deg, rgba(30,55,30,0.4) 25%, transparent 25%, transparent 75%, rgba(30,55,30,0.4) 75%),
+        linear-gradient(45deg, rgba(30,55,30,0.4) 25%, transparent 25%, transparent 75%, rgba(30,55,30,0.4) 75%)
+      `,
+      backgroundSize: '24px 24px',
+      backgroundPosition: '0 0, 12px 12px',
+      backgroundColor: '#1f3a1f'
+    }}>
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
@@ -393,6 +402,7 @@ export default function MealDetail() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
