@@ -1,5 +1,3 @@
-// Reusable textarea component
-
 import React from 'react';
 
 interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -18,18 +16,19 @@ export default function TextArea({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-cream-400 mb-1">
           {label}
-          {props.required && <span className="text-red-500 ml-1">*</span>}
+          {props.required && <span className="text-terracotta ml-1">*</span>}
         </label>
       )}
       
       <textarea
         className={`
-          w-full px-3 py-2 border rounded-lg
-          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-          disabled:bg-gray-100 disabled:cursor-not-allowed
-          ${error ? 'border-red-500' : 'border-gray-300'}
+          w-full px-3 py-2 border rounded-lg bg-forest-800 text-cream-100
+          focus:ring-2 focus:ring-gold focus:border-gold
+          disabled:bg-forest-900 disabled:cursor-not-allowed
+          placeholder:text-cream-500
+          ${error ? 'border-terracotta' : 'border-forest-500'}
           ${className}
         `}
         rows={4}
@@ -37,11 +36,11 @@ export default function TextArea({
       />
       
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-sm text-terracotta">{error}</p>
       )}
       
       {helperText && !error && (
-        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        <p className="mt-1 text-sm text-cream-500">{helperText}</p>
       )}
     </div>
   );

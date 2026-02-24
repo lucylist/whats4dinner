@@ -72,46 +72,46 @@ export default function PlanWeek() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/calendar')}
-          className="p-2 -ml-2 text-gray-600 hover:text-gray-900 rounded-lg active:bg-gray-100"
+          className="p-2 -ml-2 text-cream-400 hover:text-cream-100 rounded-lg active:bg-forest-600"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Plan your week</h2>
+        <h2 className="text-xl sm:text-2xl font-serif font-bold text-cream-100">Plan your week</h2>
       </div>
 
       {/* Meal library count */}
       {meals.length > 0 ? (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <ChefHat className="w-4 h-4" />
-          <span>{meals.length} meals in your library</span>
+        <div className="flex items-center gap-2 text-sm text-cream-400">
+          <ChefHat className="w-4 h-4 text-gold" />
+          <span>{meals.length} recipes in your library</span>
         </div>
       ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm text-amber-800 font-medium">
+        <div className="bg-terracotta/10 border border-terracotta/30 rounded-xl p-4">
+          <p className="text-sm text-terracotta-light font-medium">
             Add some meals to your library first, then come back to plan your week.
           </p>
           <button
             onClick={() => navigate('/meals')}
-            className="mt-2 text-sm font-semibold text-amber-700 underline"
+            className="mt-2 text-sm font-semibold text-gold underline"
           >
-            Go to Meals →
+            Go to Recipes →
           </button>
         </div>
       )}
       
       {/* Visual week preview */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Your week at a glance</h3>
+      <div className="bg-forest-700 rounded-2xl border border-forest-500/60 p-5 sm:p-6">
+        <h3 className="text-sm font-semibold text-cream-400 uppercase tracking-wider mb-4">Your week at a glance</h3>
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-6">
           {weekPreview.map((type, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
-              <span className="text-[10px] sm:text-xs font-semibold text-gray-400">{dayLabels[i]}</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-cream-500">{dayLabels[i]}</span>
               <div className={`w-full aspect-square rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 ${
                 type === 'cook'
-                  ? 'bg-primary-100 text-primary-600'
+                  ? 'bg-forest-300/20 text-forest-200'
                   : type === 'leftover'
-                  ? 'bg-amber-100 text-amber-600'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-gold/15 text-gold'
+                  : 'bg-forest-600 text-cream-500'
               }`}>
                 {type === 'cook' && <ChefHat className="w-5 h-5 sm:w-6 sm:h-6" />}
                 {type === 'leftover' && <Cookie className="w-5 h-5 sm:w-6 sm:h-6" />}
@@ -124,16 +124,16 @@ export default function PlanWeek() {
         {/* Legend */}
         <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:text-sm mb-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-primary-500" />
-            <span className="text-gray-600 font-medium">{cookingDays} cooking</span>
+            <div className="w-3 h-3 rounded-full bg-forest-300" />
+            <span className="text-cream-400 font-medium">{cookingDays} cooking</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-amber-400" />
-            <span className="text-gray-600 font-medium">{leftovers} leftovers</span>
+            <div className="w-3 h-3 rounded-full bg-gold" />
+            <span className="text-cream-400 font-medium">{leftovers} leftovers</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-gray-600 font-medium">{eatingOut} eating out</span>
+            <div className="w-3 h-3 rounded-full bg-forest-500" />
+            <span className="text-cream-400 font-medium">{eatingOut} eating out</span>
           </div>
         </div>
       </div>
@@ -141,24 +141,24 @@ export default function PlanWeek() {
       {/* Controls */}
       <div className="space-y-3">
         {/* Eating out stepper */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-forest-700 rounded-2xl border border-forest-500/60 p-4 sm:p-5 flex items-center justify-between">
           <div>
-            <p className="font-semibold text-gray-900">Eating out</p>
-            <p className="text-sm text-gray-500">Nights you won't cook</p>
+            <p className="font-semibold text-cream-100">Eating out</p>
+            <p className="text-sm text-cream-500">Nights you won't cook</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleEatingOutChange(-1)}
               disabled={eatingOut <= 0}
-              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border-2 border-forest-500 flex items-center justify-center text-cream-300 hover:border-cream-400 active:bg-forest-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="text-2xl font-bold text-gray-900 w-8 text-center tabular-nums">{eatingOut}</span>
+            <span className="text-2xl font-bold text-cream-100 w-8 text-center tabular-nums">{eatingOut}</span>
             <button
               onClick={() => handleEatingOutChange(1)}
               disabled={eatingOut >= totalDays - leftovers}
-              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border-2 border-forest-500 flex items-center justify-center text-cream-300 hover:border-cream-400 active:bg-forest-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -166,24 +166,24 @@ export default function PlanWeek() {
         </div>
 
         {/* Leftovers stepper */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-forest-700 rounded-2xl border border-forest-500/60 p-4 sm:p-5 flex items-center justify-between">
           <div>
-            <p className="font-semibold text-gray-900">Leftovers</p>
-            <p className="text-sm text-gray-500">Nights you'll reheat</p>
+            <p className="font-semibold text-cream-100">Leftovers</p>
+            <p className="text-sm text-cream-500">Nights you'll reheat</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleLeftoversChange(-1)}
               disabled={leftovers <= 0}
-              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border-2 border-forest-500 flex items-center justify-center text-cream-300 hover:border-cream-400 active:bg-forest-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Minus className="w-4 h-4" />
             </button>
-            <span className="text-2xl font-bold text-gray-900 w-8 text-center tabular-nums">{leftovers}</span>
+            <span className="text-2xl font-bold text-cream-100 w-8 text-center tabular-nums">{leftovers}</span>
             <button
               onClick={() => handleLeftoversChange(1)}
               disabled={leftovers >= totalDays - eatingOut}
-              className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center text-gray-600 hover:border-gray-400 active:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border-2 border-forest-500 flex items-center justify-center text-cream-300 hover:border-cream-400 active:bg-forest-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -203,7 +203,7 @@ export default function PlanWeek() {
           {isGenerating ? 'Generating...' : 'Generate my week'}
         </Button>
         {cookingDays < 1 && meals.length > 0 && (
-          <p className="text-sm text-amber-600 text-center mt-2">
+          <p className="text-sm text-terracotta text-center mt-2">
             You need at least 1 cooking day
           </p>
         )}

@@ -3,13 +3,25 @@
 @tailwind utilities;
 
 :root {
+  --bg-primary: #132213;
+  --bg-card: #1D2E1D;
+  --bg-elevated: #263826;
+  --border: #334E33;
+  --text-primary: #FFF0DC;
+  --text-secondary: #C8B99A;
+  --text-muted: #A89A7A;
+  --gold: #C9A96E;
+  --cobalt: #7DAEE0;
+  --terracotta: #D4836B;
+  --sage: #648357;
+
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light;
-  color: #213547;
-  background-color: #fafafa;
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -26,47 +38,64 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background-color: var(--bg-primary);
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Touch behavior - prevent overscroll bounce on iOS */
 html {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Custom scrollbar */
+/* Dark scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: var(--border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #4A7A4A;
+}
+
+/* Gingham pattern utility */
+.gingham-pattern {
+  background-color: var(--bg-primary);
+  background-image:
+    linear-gradient(45deg, rgba(36,53,36,0.5) 25%, transparent 25%, transparent 75%, rgba(36,53,36,0.5) 75%),
+    linear-gradient(45deg, rgba(36,53,36,0.5) 25%, transparent 25%, transparent 75%, rgba(36,53,36,0.5) 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+}
+
+.gingham-subtle {
+  background-image:
+    linear-gradient(45deg, rgba(36,53,36,0.2) 25%, transparent 25%, transparent 75%, rgba(36,53,36,0.2) 75%),
+    linear-gradient(45deg, rgba(36,53,36,0.2) 25%, transparent 25%, transparent 75%, rgba(36,53,36,0.2) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+/* Botanical border decorations */
+.botanical-border {
+  border-image: linear-gradient(to right, var(--sage), var(--gold), var(--sage)) 1;
 }
 
 /* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fadeIn {
@@ -74,14 +103,8 @@ html {
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slideUp {
@@ -108,4 +131,28 @@ html {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Input styling for dark theme */
+input, textarea, select {
+  color-scheme: dark;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Subtle grain/canvas texture overlay */
+#root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }

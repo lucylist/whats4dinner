@@ -1,4 +1,4 @@
-import { ChefHat, Users, Link2, Plus } from 'lucide-react';
+import { Users, Link2, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 interface WelcomeProps {
@@ -16,46 +16,47 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-orange-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <ChefHat className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">What's for dinner?</h1>
-          <p className="text-gray-500 text-lg">Plan meals together with your family</p>
+    <div className="min-h-screen bg-forest-800 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full flex flex-col items-center py-6 sm:py-0">
+        {/* Logo */}
+        <div className="text-center mb-6 sm:mb-10 w-full max-w-[min(100%,42rem)]">
+          <img
+            src={`${import.meta.env.BASE_URL || '/'}images/logo-botanical.png`}
+            alt="What's for dinner?"
+            className="w-full max-h-[45vh] sm:max-h-[55vh] object-contain"
+          />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 w-full max-w-xs">
           <button
             onClick={onCreateRoom}
-            className="w-full flex items-center gap-4 bg-primary-500 hover:bg-primary-600 text-white rounded-2xl px-6 py-5 transition-all shadow-md hover:shadow-lg"
+            className="w-full flex items-center gap-3 bg-gold hover:bg-gold-light text-forest-900 rounded-xl px-4 py-3 transition-all shadow-md hover:shadow-lg"
           >
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Plus className="w-6 h-6" />
+            <div className="w-9 h-9 bg-forest-800/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Plus className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="font-semibold text-lg">Create a new library</div>
-              <div className="text-primary-100 text-sm">Start fresh and invite your family</div>
+              <div className="font-semibold text-sm">Create a new library</div>
+              <div className="text-forest-900/80 text-xs">Start fresh and invite your family</div>
             </div>
           </button>
 
           {!showJoin ? (
             <button
               onClick={() => setShowJoin(true)}
-              className="w-full flex items-center gap-4 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl px-6 py-5 transition-all shadow-sm hover:shadow-md border border-gray-200"
+              className="w-full flex items-center gap-3 bg-forest-700 hover:bg-forest-600 text-cream-100 rounded-xl px-4 py-3 transition-all border border-forest-500/60 hover:border-gold/30"
             >
-              <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Users className="w-6 h-6 text-primary-500" />
+              <div className="w-9 h-9 bg-forest-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-gold" />
               </div>
               <div className="text-left">
-                <div className="font-semibold text-lg">Join an existing library</div>
-                <div className="text-gray-400 text-sm">Enter a family code to join</div>
+                <div className="font-semibold text-sm">Join an existing library</div>
+                <div className="text-cream-400 text-xs">Enter a family code to join</div>
               </div>
             </button>
           ) : (
-            <div className="bg-white rounded-2xl px-6 py-5 shadow-sm border border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Family code</label>
+            <div className="bg-forest-700 rounded-xl px-4 py-3 border border-forest-500/60">
+              <label className="block text-sm font-medium text-cream-400 mb-2">Family code</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -63,20 +64,20 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
                   onChange={e => setJoinCode(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleJoin()}
                   placeholder="e.g. k8m3x9p2"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-lg tracking-wider font-mono"
+                  className="flex-1 px-4 py-3 bg-forest-800 border border-forest-500 rounded-xl text-cream-100 focus:ring-2 focus:ring-gold focus:border-gold text-lg tracking-wider font-mono placeholder:text-cream-500"
                   autoFocus
                 />
                 <button
                   onClick={handleJoin}
                   disabled={!joinCode.trim()}
-                  className="px-5 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 sm:px-5 py-3 bg-gold text-forest-900 rounded-xl font-medium hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Join
                 </button>
               </div>
               <button
                 onClick={() => { setShowJoin(false); setJoinCode(''); }}
-                className="text-sm text-gray-400 hover:text-gray-600 mt-3"
+                className="text-sm text-cream-500 hover:text-cream-300 mt-3"
               >
                 Cancel
               </button>
@@ -84,9 +85,9 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
           )}
         </div>
 
-        <div className="mt-10 text-center">
-          <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
-            <Link2 className="w-4 h-4" />
+        <div className="mt-6 sm:mt-10 text-center">
+          <div className="flex items-center justify-center gap-2 text-cream-500 text-xs">
+            <Link2 className="w-3 h-3" />
             Share your link and everyone sees the same recipes
           </div>
         </div>

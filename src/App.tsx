@@ -43,8 +43,8 @@ function App() {
 
   if (!checked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto"></div>
+      <div className="min-h-screen flex items-center justify-center bg-forest-800">
+        <div className="animate-spin w-8 h-8 border-4 border-gold border-t-transparent rounded-full mx-auto"></div>
       </div>
     );
   }

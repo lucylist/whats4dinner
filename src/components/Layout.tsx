@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, Calendar, SlidersHorizontal, Refrigerator, Share2, Check } from 'lucide-react';
+import { Share2, Check } from 'lucide-react';
+import { CalendarLeafIcon, RecipesFlowerIcon, PlanHerbIcon } from './NavIcons';
 import { useApp } from '../context/AppContext';
 
 interface LayoutProps {
@@ -17,8 +18,8 @@ export default function Layout({ children }: LayoutProps) {
   const navLinkClass = (path: string) => {
     const base = "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors";
     return isActive(path)
-      ? `${base} bg-primary-500 text-white`
-      : `${base} text-gray-600 hover:bg-gray-100`;
+      ? `${base} bg-gold/20 text-gold-light`
+      : `${base} text-cream-400 hover:text-cream-100 hover:bg-forest-600`;
   };
 
   const handleShare = async () => {
@@ -29,7 +30,6 @@ export default function Layout({ children }: LayoutProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const input = document.createElement('input');
       input.value = url;
       document.body.appendChild(input);
@@ -42,30 +42,33 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 bg-white shadow-sm border-b border-gray-200 z-40">
+    <div className="min-h-screen bg-forest-800">
+      {/* Header */}
+      <header className="sticky top-0 bg-forest-800/95 backdrop-blur-sm border-b border-forest-500/50 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg sm:text-2xl font-bold text-primary-600 flex items-center gap-2">
-            <ChefHat className="w-6 h-6 sm:w-8 sm:h-8" />
-            <span className="hidden sm:inline">What's for dinner?</span>
-            <span className="sm:hidden">What's for dinner?</span>
-          </h1>
+          <Link to="/calendar" className="group">
+            <img
+              src={`${import.meta.env.BASE_URL || '/'}images/logo-botanical.png`}
+              alt="What's for dinner?"
+              className="h-10 sm:h-12 w-auto"
+            />
+          </Link>
           <div className="flex items-center gap-1">
             {roomId && (
               <button
                 onClick={handleShare}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-cream-400 hover:text-gold hover:bg-forest-600 rounded-lg transition-colors"
                 title="Share with family"
               >
                 {copied ? (
                   <>
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-green-600">Copied!</span>
+                    <Check className="w-4 h-4 text-forest-200" />
+                    <span className="text-forest-200">Copied!</span>
                   </>
                 ) : (
                   <>
                     <Share2 className="w-4 h-4" />
-                    <span>Share</span>
+                    <span className="hidden sm:inline">Share</span>
                   </>
                 )}
               </button>
@@ -78,26 +81,22 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-forest-800/95 backdrop-blur-sm border-t border-forest-500/50 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-around items-center h-16">
             <Link to="/calendar" className={navLinkClass('/calendar')}>
-              <Calendar className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Calendar</span>
+              <CalendarLeafIcon className="w-7 h-7 mb-0.5" />
+              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Calendar</span>
             </Link>
             <Link to="/meals" className={navLinkClass('/meals')}>
-              <ChefHat className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Meals</span>
+              <RecipesFlowerIcon className="w-7 h-7 mb-0.5" />
+              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Recipes</span>
             </Link>
-            {/* My Fridge - hidden for MVP, re-enable later
-            <Link to="/fridge" className={navLinkClass('/fridge')}>
-              <Refrigerator className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">My fridge</span>
-            </Link>
-            */}
+            {/* My Fridge - hidden for MVP */}
             <Link to="/plan-week" className={navLinkClass('/plan-week')}>
-              <SlidersHorizontal className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Preferences</span>
+              <PlanHerbIcon className="w-7 h-7 mb-0.5" />
+              <span className="text-[10px] sm:text-xs font-medium tracking-wide">Plan</span>
             </Link>
           </div>
         </div>

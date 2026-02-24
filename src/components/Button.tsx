@@ -1,5 +1,3 @@
-// Reusable button component
-
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,10 +18,10 @@ export default function Button({
   const baseClass = 'font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400',
-    danger: 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700',
-    outline: 'border-2 border-primary-500 text-primary-600 hover:bg-primary-50'
+    primary: 'bg-gold text-forest-900 hover:bg-gold-light active:bg-gold-dark font-semibold',
+    secondary: 'bg-forest-600 text-cream-100 hover:bg-forest-500 active:bg-forest-400',
+    danger: 'bg-terracotta text-forest-900 hover:bg-terracotta-dark active:opacity-80 font-semibold',
+    outline: 'border-2 border-gold text-gold hover:bg-forest-600'
   };
   
   const sizeClasses = {
