@@ -10,23 +10,44 @@ export const isQuickPlatform = (): boolean => {
      window.location.hostname === 'localhost');
 };
 
-function waitForQuick(timeoutMs = 3000): Promise<any | null> {
+let loadPromise: Promise<any | null> | null = null;
+
+function loadQuickClient(timeoutMs = 4000): Promise<any | null> {
   if (window.quick) return Promise.resolve(window.quick);
   if (!isQuickPlatform()) return Promise.resolve(null);
 
-  return new Promise((resolve) => {
-    const start = Date.now();
-    const check = () => {
-      if (window.quick) return resolve(window.quick);
-      if (Date.now() - start > timeoutMs) return resolve(null);
-      requestAnimationFrame(check);
+  if (loadPromise) return loadPromise;
+
+  loadPromise = new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      console.log('Quick client load timed out');
+      resolve(null);
+    }, timeoutMs);
+
+    const script = document.createElement('script');
+    script.src = '/client/quick.js';
+    script.onload = () => {
+      const poll = setInterval(() => {
+        if (window.quick) {
+          clearTimeout(timer);
+          clearInterval(poll);
+          resolve(window.quick);
+        }
+      }, 50);
+      setTimeout(() => clearInterval(poll), timeoutMs);
     };
-    check();
+    script.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+    document.head.appendChild(script);
   });
+
+  return loadPromise;
 }
 
 export const getQuickClient = async () => {
-  return waitForQuick();
+  return loadQuickClient();
 };
 
 export const getQuickDB = async () => {
