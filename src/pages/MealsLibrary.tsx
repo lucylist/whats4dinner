@@ -109,11 +109,11 @@ export default function MealsLibrary() {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="pt-4 sm:pt-6 space-y-4">
       {/* Sticky Header */}
-      <div className="sticky top-[73px] bg-forest-800 z-30 space-y-4 pb-4 -mx-4 px-4">
+      <div className="sticky top-0 bg-forest-800 z-30 space-y-4 pb-4 -mx-4 px-4">
         {/* Title + Add */}
-        <div className="pt-6 flex items-center justify-between">
+        <div className="pt-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-4xl sm:text-5xl font-serif text-cream-100">Meals</h2>
             <span className="px-2.5 py-0.5 bg-cobalt/20 text-cobalt rounded-full text-sm font-semibold">
