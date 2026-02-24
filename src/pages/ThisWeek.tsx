@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import { Calendar, Edit, RefreshCw, ChevronLeft, ChevronRight, GripVertical, X } from 'lucide-react';
+import { Calendar, RefreshCw, ChevronLeft, ChevronRight, GripVertical, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
 import { DayPlan, Meal } from '../types';
 import { toTitleCase, generateId, extractTagsFromName } from '../utils/storage';
+import { generateWeeklyPlan } from '../utils/planGenerator';
 
 interface LeftoverPickerState {
   dayDate: string;
@@ -326,24 +327,25 @@ export default function ThisWeek() {
           </p>
         </div>
         
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => navigate('/plan-week')}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Regenerate
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/edit-plan')}
-            className="flex items-center gap-2"
-          >
-            <Edit className="w-4 h-4" />
-            Edit
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            const plan = generateWeeklyPlan(meals, new Date(), {
+              duration: currentPlan.duration || 'week',
+              durationCount: currentPlan.durationCount || 1,
+              eatingOutDays: currentPlan.days.filter(d => d.type === 'eating_out').length,
+              leftoverDays: currentPlan.days.filter(d => d.type === 'leftovers').length,
+              excludedMealIds: [],
+              preferQuickMeals: false,
+              useIngredientsFromFridge: false,
+            });
+            setCurrentPlan(plan);
+          }}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Regenerate
+        </Button>
       </div>
       
       {/* Week Navigation for long plans */}
