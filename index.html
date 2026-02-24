@@ -8,15 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Inter:wght@400;500;600;700;800&family=Pinyon+Script&display=swap" rel="stylesheet" />
     <title>What's for dinner?</title>
+    <style>
+      html, body { background-color: #132213 !important; margin: 0; }
+      .app-loader { min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#132213; }
+      .app-spinner { width:32px;height:32px;border:3px solid transparent;border-top-color:#C9A96E;border-radius:50%;animation:spin 0.8s linear infinite; }
+      @keyframes spin { to { transform:rotate(360deg) } }
+    </style>
   </head>
-  <body style="background-color: #132213; margin: 0; color: #E8D5AA;">
+  <body>
     <div id="root">
-      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-        <div style="width:32px;height:32px;border:3px solid transparent;border-top-color:#C9A96E;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <div class="app-loader">
+        <div class="app-spinner"></div>
         <span style="font-family:Inter,system-ui,sans-serif;font-size:14px;color:#A89A7A;">Loading...</span>
       </div>
     </div>
-    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
