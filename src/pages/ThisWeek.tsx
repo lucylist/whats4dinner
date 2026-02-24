@@ -426,12 +426,21 @@ export default function ThisWeek() {
                     </>
                   )}
                   {day.type === 'eating_out' && (
-                    <div className="flex-1 flex flex-col items-center justify-center px-2 min-h-[8rem]">
-                      <div className="w-14 h-14 rounded-full bg-terracotta/10 flex items-center justify-center mb-2">
-                        <span className="text-2xl">🍽️</span>
+                    <>
+                      <div className="aspect-[4/3] flex items-center justify-center" style={{
+                        backgroundImage: `
+                          linear-gradient(0deg, rgba(62,100,62,0.45) 50%, transparent 50%),
+                          linear-gradient(90deg, rgba(62,100,62,0.45) 50%, transparent 50%)
+                        `,
+                        backgroundSize: '16px 16px',
+                        backgroundColor: '#1e3a1e'
+                      }}>
+                        <span className="text-3xl">🍽️</span>
                       </div>
-                      <p className="text-xs font-semibold text-cream-300">Eating out</p>
-                    </div>
+                      <div className="px-2.5 py-2">
+                        <p className="text-xs font-semibold text-cream-200 text-center">Eating out</p>
+                      </div>
+                    </>
                   )}
                   {!meal && day.type === 'meal' && (
                     <div className="flex-1 flex flex-col items-center justify-center py-4 px-2">
