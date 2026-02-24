@@ -36,7 +36,7 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
               <Plus className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="font-semibold text-sm">Create a new library</div>
+              <div className="font-serif font-semibold text-sm">Create a new library</div>
               <div className="text-forest-900/80 text-xs">Start fresh and invite your family</div>
             </div>
           </button>
@@ -50,7 +50,7 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
                 <Users className="w-4 h-4 text-gold" />
               </div>
               <div className="text-left">
-                <div className="font-semibold text-sm">Join an existing library</div>
+                <div className="font-serif font-semibold text-sm">Join an existing library</div>
                 <div className="text-cream-400 text-xs">Enter a family code to join</div>
               </div>
             </button>
