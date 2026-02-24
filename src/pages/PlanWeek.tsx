@@ -97,7 +97,7 @@ export default function PlanWeek() {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-xl sm:text-2xl font-serif font-bold text-cream-100">Preferences</h2>
+        <h2 className="text-3xl sm:text-4xl font-serif font-bold text-cream-100">Preferences</h2>
       </div>
 
       {/* Meal library count */}

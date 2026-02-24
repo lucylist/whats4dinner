@@ -115,7 +115,7 @@ export default function MealsLibrary() {
         {/* Title + Add */}
         <div className="pt-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-serif font-bold text-cream-100">Recipes</h2>
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-cream-100">Meals</h2>
             <span className="px-2.5 py-0.5 bg-gold/20 text-gold rounded-full text-sm font-semibold">
               {meals.length}
             </span>
