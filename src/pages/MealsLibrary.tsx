@@ -4,6 +4,7 @@ import { Plus, Search, X, Link, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import MealCard from '../components/MealCard';
 import Button from '../components/Button';
+import DuplicateModal from '../components/DuplicateModal';
 import { Meal } from '../types';
 import { generateId, toTitleCase, extractTagsFromName } from '../utils/storage';
 import { isUrl, importRecipeFromUrl } from '../utils/recipeImport';
@@ -20,6 +21,7 @@ export default function MealsLibrary() {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [duplicateCheck, setDuplicateCheck] = useState<{ existing: Meal; pending: Meal } | null>(null);
   
   const filteredMeals = meals
     .filter(meal => {
@@ -57,6 +59,12 @@ export default function MealsLibrary() {
       try {
         const result = await importRecipeFromUrl(newMealName.trim());
         if (result.success && result.meal) {
+          const existing = meals.find(m => m.name.toLowerCase() === result.meal!.name.toLowerCase());
+          if (existing) {
+            setDuplicateCheck({ existing, pending: result.meal });
+            setIsImporting(false);
+            return;
+          }
           addMeal(result.meal);
           setImportSuccess(`Imported "${result.meal.name}" with ${result.meal.ingredients.length} ingredients`);
           setNewMealName('');
@@ -72,11 +80,13 @@ export default function MealsLibrary() {
     }
 
     const mealName = newMealName.trim();
+    const titleName = toTitleCase(mealName);
+    const existing = meals.find(m => m.name.toLowerCase() === titleName.toLowerCase());
+
     const autoTags = extractTagsFromName(mealName);
-    
     const newMeal: Meal = {
       id: generateId(),
-      name: toTitleCase(mealName),
+      name: titleName,
       description: '',
       ingredients: [],
       recipe: '',
@@ -88,6 +98,12 @@ export default function MealsLibrary() {
       createdAt: new Date().toISOString(),
       lastMadeAt: null,
     };
+
+    if (existing) {
+      setDuplicateCheck({ existing, pending: newMeal });
+      return;
+    }
+
     addMeal(newMeal);
     setNewMealName('');
     setImportSuccess(null);
@@ -273,6 +289,24 @@ export default function MealsLibrary() {
             />
           ))}
         </div>
+      )}
+
+      {duplicateCheck && (
+        <DuplicateModal
+          existingMeal={duplicateCheck.existing}
+          newMealName={duplicateCheck.pending.name}
+          onKeepBoth={() => {
+            addMeal(duplicateCheck.pending);
+            setNewMealName('');
+            setDuplicateCheck(null);
+          }}
+          onViewExisting={() => {
+            setSelectedMealId(duplicateCheck.existing.id);
+            setDuplicateCheck(null);
+            navigate('/meal-detail');
+          }}
+          onCancel={() => setDuplicateCheck(null)}
+        />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { generateId, toTitleCase } from '../utils/storage';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import TextArea from '../components/TextArea';
+import DuplicateModal from '../components/DuplicateModal';
 
 export default function MealForm() {
   const { selectedMealId, getMeal, addMeal, updateMeal, meals, setSelectedMealId } = useApp();
@@ -35,6 +36,7 @@ export default function MealForm() {
   });
   
   const [newLink, setNewLink] = useState('');
+  const [duplicateCheck, setDuplicateCheck] = useState<{ existing: Meal; pending: Meal } | null>(null);
   
   useEffect(() => {
     if (existingMeal) {
@@ -140,36 +142,34 @@ export default function MealForm() {
     
     if (isEditing) {
       updateMeal(meal);
-      // Navigate back to meal detail to see the changes
       navigate('/meal-detail');
     } else {
-      addMeal(meal);
-      
-      // Show success message
-      setLastAddedMealName(meal.name);
-      setShowSuccessMessage(true);
-      
-      // Clear form for next quick add
-      setFormData({
-        name: '',
-        description: '',
-        ingredientsText: '',
-        recipe: '',
-        links: [],
-        tagsText: '',
-        prepTime: '',
-        imageUrl: '',
-        notes: ''
-      });
-      
-      // Reset to quick add mode
-      setQuickAddMode(true);
-      
-      // Hide success message after 4 seconds
-      setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 4000);
+      const existing = meals.find(m => m.name.toLowerCase() === meal.name.toLowerCase());
+      if (existing) {
+        setDuplicateCheck({ existing, pending: meal });
+        return;
+      }
+      commitNewMeal(meal);
     }
+  };
+
+  const commitNewMeal = (meal: Meal) => {
+    addMeal(meal);
+    setLastAddedMealName(meal.name);
+    setShowSuccessMessage(true);
+    setFormData({
+      name: '',
+      description: '',
+      ingredientsText: '',
+      recipe: '',
+      links: [],
+      tagsText: '',
+      prepTime: '',
+      imageUrl: '',
+      notes: ''
+    });
+    setQuickAddMode(true);
+    setTimeout(() => setShowSuccessMessage(false), 4000);
   };
   
   const [isExtractingImage, setIsExtractingImage] = useState(false);
@@ -496,6 +496,23 @@ export default function MealForm() {
           </div>
         )}
       </form>
+
+      {duplicateCheck && (
+        <DuplicateModal
+          existingMeal={duplicateCheck.existing}
+          newMealName={duplicateCheck.pending.name}
+          onKeepBoth={() => {
+            commitNewMeal(duplicateCheck.pending);
+            setDuplicateCheck(null);
+          }}
+          onViewExisting={() => {
+            setSelectedMealId(duplicateCheck.existing.id);
+            setDuplicateCheck(null);
+            navigate('/meal-detail');
+          }}
+          onCancel={() => setDuplicateCheck(null)}
+        />
+      )}
     </div>
   );
 }
