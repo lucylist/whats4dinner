@@ -9,7 +9,6 @@ export default {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
         serif: ['Georgia', '"Times New Roman"', 'serif'],
-        cursive: ['Cedarville Cursive', 'cursive'],
         script: ['Pinyon Script', 'cursive'],
       },
       colors: {
