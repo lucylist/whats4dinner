@@ -55,9 +55,9 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center justify-center relative">
           <Link to="/calendar" className="group">
             <img
-              src={`${import.meta.env.BASE_URL || '/'}images/logo-botanical.png`}
+              src={`${import.meta.env.BASE_URL || '/'}images/horizontal-logo.png`}
               alt="What's for dinner?"
-              className="h-20 sm:h-24 w-auto"
+              className="h-16 sm:h-20 w-auto"
             />
           </Link>
           {roomId && (
