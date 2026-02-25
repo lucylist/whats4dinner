@@ -57,20 +57,20 @@ export default function Welcome({ onCreateRoom, onJoinRoom }: WelcomeProps) {
           ) : (
             <div className="bg-forest-700 rounded-xl px-4 py-3 border border-forest-500/60">
               <label className="block text-sm font-medium text-cream-400 mb-2">Family code</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full">
                 <input
                   type="text"
                   value={joinCode}
                   onChange={e => setJoinCode(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleJoin()}
                   placeholder="e.g. k8m3x9p2"
-                  className="flex-1 px-4 py-3 bg-forest-800 border border-forest-500 rounded-xl text-cream-100 focus:ring-2 focus:ring-gold focus:border-gold text-lg tracking-wider font-mono placeholder:text-cream-500"
+                  className="min-w-0 flex-1 px-3 py-2.5 bg-forest-800 border border-forest-500 rounded-xl text-cream-100 focus:ring-2 focus:ring-gold focus:border-gold text-base tracking-wider font-mono placeholder:text-cream-500"
                   autoFocus
                 />
                 <button
                   onClick={handleJoin}
                   disabled={!joinCode.trim()}
-                  className="px-4 sm:px-5 py-3 bg-gold text-forest-900 rounded-xl font-medium hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex-shrink-0 px-4 py-2.5 bg-gold text-forest-900 rounded-xl font-medium hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Join
                 </button>
