@@ -91,86 +91,76 @@ export function generateWeeklyPlan(
     prevWeekIds = thisWeekIds;
   }
   
-  // Determine which days are eating out
-  const eatingOutIndices = getRandomDayIndices(totalDays, preferences.eatingOutDays);
-  
+  // Distribute eating out per week (not randomly across all days)
+  const eoPerWeek = numWeeks > 0 ? Math.round(preferences.eatingOutDays / numWeeks) : preferences.eatingOutDays;
+  const loPerWeek = numWeeks > 0 ? Math.round(preferences.leftoverDays / numWeeks) : preferences.leftoverDays;
+
+  const eatingOutIndices = new Set<number>();
+  for (let w = 0; w < numWeeks; w++) {
+    const weekStart = w * 7;
+    const weekEnd = Math.min(weekStart + 7, totalDays);
+    const weekLen = weekEnd - weekStart;
+    const weekIndices = getRandomDayIndices(weekLen, Math.min(eoPerWeek, weekLen));
+    for (const idx of weekIndices) eatingOutIndices.add(weekStart + idx);
+  }
+
   // Build initial day plans (without leftovers yet)
   const days: DayPlan[] = [];
   let mealIndex = 0;
-  
+
   for (let i = 0; i < totalDays; i++) {
     const date = addDays(planStartDate, i);
     const dateString = format(date, 'yyyy-MM-dd');
-    
-    let dayPlan: DayPlan;
-    
-    if (eatingOutIndices.includes(i)) {
-      dayPlan = {
+
+    if (eatingOutIndices.has(i)) {
+      days.push({
         date: dateString,
         mealId: null,
         type: 'eating_out',
         leftoverFromDate: null,
         customNote: '',
         locked: false
-      };
+      });
     } else {
-      // Regular meal day (we'll convert some to leftovers later)
       const meal = selectedMeals[mealIndex] || selectedMeals[0];
       mealIndex++;
-      
-      dayPlan = {
+      days.push({
         date: dateString,
         mealId: meal?.id || null,
         type: 'meal',
         leftoverFromDate: null,
         customNote: '',
         locked: false
-      };
-    }
-    
-    days.push(dayPlan);
-  }
-  
-  // Now place leftover days with rules:
-  // 1. NOT after eating out
-  // 2. Only after at least 2 meal days
-  const validLeftoverIndices: number[] = [];
-  
-  for (let i = 0; i < totalDays; i++) {
-    // Skip if already eating out
-    if (days[i].type === 'eating_out') continue;
-    
-    // Check if previous day is eating out
-    if (i > 0 && days[i - 1].type === 'eating_out') continue;
-    
-    // Count previous meal days (not eating out or leftovers)
-    const previousMealCount = days.slice(0, i).filter(d => d.type === 'meal').length;
-    
-    // Need at least 2 previous meals
-    if (previousMealCount >= 2) {
-      validLeftoverIndices.push(i);
+      });
     }
   }
-  
-  // Randomly select leftover days from valid indices
-  const shuffledValidIndices = shuffleArray(validLeftoverIndices);
-  const leftoverIndices = shuffledValidIndices.slice(0, Math.min(preferences.leftoverDays, validLeftoverIndices.length));
-  
-  // Convert selected days to leftover days
-  for (const index of leftoverIndices) {
-    // Find the most recent meal day before this day
-    const previousMealDays = days.slice(0, index).filter(d => d.type === 'meal' && d.mealId);
-    const leftoverSource = previousMealDays.length > 0 
-      ? previousMealDays[previousMealDays.length - 1]
-      : null;
-    
-    if (leftoverSource) {
-      days[index] = {
-        ...days[index],
-        mealId: leftoverSource.mealId,
-        type: 'leftovers',
-        leftoverFromDate: leftoverSource.date
-      };
+
+  // Distribute leftovers per week
+  for (let w = 0; w < numWeeks; w++) {
+    const weekStart = w * 7;
+    const weekEnd = Math.min(weekStart + 7, totalDays);
+
+    const validInWeek: number[] = [];
+    for (let i = weekStart; i < weekEnd; i++) {
+      if (days[i].type === 'eating_out') continue;
+      if (i > 0 && days[i - 1].type === 'eating_out') continue;
+      // Need at least 2 meal days before this index (across the whole plan)
+      const prevMeals = days.slice(0, i).filter(d => d.type === 'meal').length;
+      if (prevMeals >= 2) validInWeek.push(i);
+    }
+
+    const chosen = shuffleArray(validInWeek).slice(0, Math.min(loPerWeek, validInWeek.length));
+    for (const index of chosen) {
+      const previousMealDays = days.slice(0, index).filter(d => d.type === 'meal' && d.mealId);
+      const src = previousMealDays[previousMealDays.length - 1];
+      if (src) {
+        days[index] = {
+          ...days[index],
+          mealId: src.mealId,
+          type: 'leftovers',
+          leftoverFromDate: src.date
+        };
+      }
     }
   }
   

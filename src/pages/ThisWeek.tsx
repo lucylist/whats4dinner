@@ -924,17 +924,6 @@ export default function ThisWeek() {
           {/* View mode toggle */}
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setViewMode('stacked')}
-              className={`p-1.5 rounded-lg border transition-colors ${
-                viewMode === 'stacked'
-                  ? 'bg-cobalt/20 border-cobalt/40 text-cobalt'
-                  : 'bg-forest-700 border-forest-500/60 text-cream-400 hover:text-cream-100'
-              }`}
-              title="All weeks"
-            >
-              <Layers className="w-4 h-4" />
-            </button>
-            <button
               onClick={() => setViewMode('paginated')}
               className={`p-1.5 rounded-lg border transition-colors ${
                 viewMode === 'paginated'
@@ -944,6 +933,17 @@ export default function ThisWeek() {
               title="One at a time"
             >
               <Square className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('stacked')}
+              className={`p-1.5 rounded-lg border transition-colors ${
+                viewMode === 'stacked'
+                  ? 'bg-cobalt/20 border-cobalt/40 text-cobalt'
+                  : 'bg-forest-700 border-forest-500/60 text-cream-400 hover:text-cream-100'
+              }`}
+              title="All weeks"
+            >
+              <Layers className="w-4 h-4" />
             </button>
           </div>
 
