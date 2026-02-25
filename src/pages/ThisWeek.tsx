@@ -600,9 +600,19 @@ export default function ThisWeek() {
                       </>
                     )}
                     {day.type === 'eating_out' && (
-                      <div className="flex-1 flex items-center justify-center">
-                        <span className="text-lg">🍽️</span>
-                      </div>
+                      <>
+                        <div className="w-full aspect-[3/2] rounded-md flex items-center justify-center" style={{
+                          backgroundImage: `
+                            linear-gradient(0deg, rgba(62,100,62,0.45) 50%, transparent 50%),
+                            linear-gradient(90deg, rgba(62,100,62,0.45) 50%, transparent 50%)
+                          `,
+                          backgroundSize: '12px 12px',
+                          backgroundColor: '#1e3a1e'
+                        }}>
+                          <span className="text-lg">🍽️</span>
+                        </div>
+                        <p className="text-[10px] font-semibold text-cream-100 leading-tight">Eating out</p>
+                      </>
                     )}
                     {!meal && day.type === 'meal' && (
                       <div className="flex-1 flex items-center justify-center">
