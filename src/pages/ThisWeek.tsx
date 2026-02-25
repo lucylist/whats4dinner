@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, startOfWeek, getDay } from 'date-fns';
+import { format, parseISO, startOfWeek, startOfMonth, endOfMonth, addDays, getDay, isBefore, startOfDay } from 'date-fns';
 import { Calendar, RefreshCw, ChevronLeft, ChevronRight, X, Layers, Square } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
@@ -302,16 +302,32 @@ export default function ThisWeek() {
     return m;
   }, [currentPlan.days]);
 
-  // Monthly calendar grid: rows of 7 cells, padding before/after the plan days
+  // Monthly calendar grid: full month from 1st to last day, with padding
   const monthGridRows = useMemo(() => {
     if (!isMonthPlan || currentPlan.days.length === 0) return [];
-    const firstDate = parseISO(currentPlan.days[0].date);
-    const lastDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
-    const startDow = getDay(firstDate); // 0=Sun
+    const firstPlanDate = parseISO(currentPlan.days[0].date);
+    const monthStart = startOfMonth(firstPlanDate);
+    const monthLast = endOfMonth(firstPlanDate);
+    const startDow = getDay(monthStart); // 0=Sun
 
     const cells: (string | null)[] = [];
+    // Pad for day-of-week alignment
     for (let i = 0; i < startDow; i++) cells.push(null);
-    for (const d of currentPlan.days) cells.push(d.date);
+    // Fill every day of the month
+    let cursor = monthStart;
+    while (cursor <= monthLast) {
+      cells.push(format(cursor, 'yyyy-MM-dd'));
+      cursor = addDays(cursor, 1);
+    }
+    // Also include any plan days that spill into the next month
+    const lastPlanDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
+    if (lastPlanDate > monthLast) {
+      cursor = addDays(monthLast, 1);
+      while (cursor <= lastPlanDate) {
+        cells.push(format(cursor, 'yyyy-MM-dd'));
+        cursor = addDays(cursor, 1);
+      }
+    }
     while (cells.length % 7 !== 0) cells.push(null);
 
     const rows: (string | null)[][] = [];
@@ -549,10 +565,31 @@ export default function ThisWeek() {
           <div key={ri} className="grid grid-cols-7 gap-1.5 mb-1.5">
             {row.map((dateStr, ci) => {
               if (!dateStr) return <div key={ci} />;
-              const day = daysByDate.get(dateStr)!;
               const date = parseISO(dateStr);
-              const meal = day.mealId ? getMeal(day.mealId) : null;
+              const day = daysByDate.get(dateStr);
               const today = isToday(date);
+
+              // Day not in the plan (past days) — blank green cell
+              if (!day) {
+                return (
+                  <div
+                    key={dateStr}
+                    className={`rounded-xl border overflow-hidden flex flex-col ${
+                      today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/20'
+                    }`}
+                    style={{ backgroundColor: '#1e3a1e' }}
+                  >
+                    <div className={`text-right px-2 pt-1.5 pb-0.5 ${today ? 'bg-terracotta/15' : ''}`}>
+                      <span className={`text-sm font-serif font-bold ${today ? 'text-terracotta' : 'text-cream-500/40'}`}>
+                        {format(date, 'd')}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-h-[3.5rem]" />
+                  </div>
+                );
+              }
+
+              const meal = day.mealId ? getMeal(day.mealId) : null;
               const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
 
               return (
@@ -627,10 +664,10 @@ export default function ThisWeek() {
         ))}
       </div>
 
-      {/* Mobile month: stacked list grouped by week */}
+      {/* Mobile month: stacked list grouped by week (only plan days) */}
       <div className="md:hidden space-y-6">
         {monthGridRows.map((row, ri) => {
-          const weekDays = row.filter(Boolean).map(d => daysByDate.get(d!)!);
+          const weekDays = row.filter(Boolean).map(d => daysByDate.get(d!)).filter(Boolean) as DayPlan[];
           if (weekDays.length === 0) return null;
           const wStart = parseISO(weekDays[0].date);
           const wEnd = parseISO(weekDays[weekDays.length - 1].date);
