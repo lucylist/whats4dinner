@@ -287,6 +287,9 @@ export default function ThisWeek() {
   }, [currentWeekIndex, currentPlan]);
 
   const isMonthPlan = (currentPlan.duration === 'month');
+  // #region agent log
+  React.useEffect(() => { console.log('[debug] Calendar render', { isMonthPlan, planDays: currentPlan.days.length, duration: currentPlan.duration, durationCount: currentPlan.durationCount, firstDay: currentPlan.days[0]?.date, lastDay: currentPlan.days[currentPlan.days.length-1]?.date, eoCount: currentPlan.days.filter(d=>d.type==='eating_out').length, loCount: currentPlan.days.filter(d=>d.type==='leftovers').length }); }, [currentPlan]);
+  // #endregion
 
   // Build full Sun-Sat week rows, with null for days not in the plan
   const weekRows = useMemo(() => {
@@ -325,31 +328,21 @@ export default function ThisWeek() {
     return m;
   }, [currentPlan.days]);
 
-  // Monthly calendar grid: full month from 1st to last day, with padding
+  // Monthly calendar grid: spans from 1st of the first plan month to end of the last plan month
   const monthGridRows = useMemo(() => {
     if (!isMonthPlan || currentPlan.days.length === 0) return [];
     const firstPlanDate = parseISO(currentPlan.days[0].date);
-    const monthStart = startOfMonth(firstPlanDate);
-    const monthLast = endOfMonth(firstPlanDate);
-    const startDow = getDay(monthStart); // 0=Sun
+    const lastPlanDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
+    const calendarStart = startOfMonth(firstPlanDate);
+    const calendarEnd = endOfMonth(lastPlanDate);
+    const startDow = getDay(calendarStart);
 
     const cells: (string | null)[] = [];
-    // Pad for day-of-week alignment
     for (let i = 0; i < startDow; i++) cells.push(null);
-    // Fill every day of the month
-    let cursor = monthStart;
-    while (cursor <= monthLast) {
+    let cursor = calendarStart;
+    while (cursor <= calendarEnd) {
       cells.push(format(cursor, 'yyyy-MM-dd'));
       cursor = addDays(cursor, 1);
-    }
-    // Also include any plan days that spill into the next month
-    const lastPlanDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
-    if (lastPlanDate > monthLast) {
-      cursor = addDays(monthLast, 1);
-      while (cursor <= lastPlanDate) {
-        cells.push(format(cursor, 'yyyy-MM-dd'));
-        cursor = addDays(cursor, 1);
-      }
     }
     while (cells.length % 7 !== 0) cells.push(null);
 
@@ -685,8 +678,21 @@ export default function ThisWeek() {
           ))}
         </div>
         {/* Weeks */}
-        {monthGridRows.map((row, ri) => (
-          <div key={ri} className="grid grid-cols-7 gap-1.5 mb-1.5">
+        {monthGridRows.map((row, ri) => {
+          const firstDateInRow = row.find(d => d !== null);
+          const prevRow = ri > 0 ? monthGridRows[ri - 1] : null;
+          const prevLastDate = prevRow ? [...prevRow].reverse().find(d => d !== null) : null;
+          const showMonthLabel = firstDateInRow && prevLastDate &&
+            format(parseISO(firstDateInRow), 'yyyy-MM') !== format(parseISO(prevLastDate), 'yyyy-MM');
+
+          return (
+          <React.Fragment key={ri}>
+          {showMonthLabel && (
+            <div className="col-span-7 pt-4 pb-2">
+              <h3 className="text-lg font-serif font-semibold text-cream-100">{format(parseISO(firstDateInRow!), 'MMMM yyyy')}</h3>
+            </div>
+          )}
+          <div className="grid grid-cols-7 gap-1.5 mb-1.5">
             {row.map((dateStr, ci) => {
               if (!dateStr) return <div key={ci} />;
               const date = parseISO(dateStr);
@@ -785,7 +791,9 @@ export default function ThisWeek() {
               );
             })}
           </div>
-        ))}
+          </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Mobile month: stacked list grouped by week (only plan days) */}
@@ -913,7 +921,14 @@ export default function ThisWeek() {
         </div>
         <p className="text-sm sm:text-base text-cream-400 mt-0.5">
           {isMonthPlan
-            ? format(parseISO(currentPlan.days[0].date), 'MMMM yyyy')
+            ? (() => {
+                const first = parseISO(currentPlan.days[0].date);
+                const last = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
+                const sameMonth = format(first, 'yyyy-MM') === format(last, 'yyyy-MM');
+                return sameMonth
+                  ? format(first, 'MMMM yyyy')
+                  : `${format(first, 'MMMM')} \u2013 ${format(last, 'MMMM yyyy')}`;
+              })()
             : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}
         </p>
       </div>

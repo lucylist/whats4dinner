@@ -1,6 +1,6 @@
 // Meal plan generator (supports week/month durations)
 
-import { startOfWeek, addDays, endOfWeek, endOfMonth, differenceInCalendarDays, format } from 'date-fns';
+import { startOfWeek, addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays, format } from 'date-fns';
 import { Meal, WeeklyPlan, DayPlan, PlannerPreferences } from '../types';
 import { generateId } from './storage';
 
@@ -39,8 +39,11 @@ export function generateWeeklyPlan(
   
   if (preferences.duration === 'month') {
     planStartDate = startDate;
-    const monthEnd = endOfMonth(startDate);
-    totalDays = differenceInCalendarDays(monthEnd, startDate) + 1;
+    const lastMonthEnd = endOfMonth(addMonths(startDate, preferences.durationCount - 1));
+    totalDays = differenceInCalendarDays(lastMonthEnd, startDate) + 1;
+    // #region agent log
+    console.log('[debug] Month plan calc', { durationCount: preferences.durationCount, startDate: format(startDate,'yyyy-MM-dd'), lastMonthEnd: format(lastMonthEnd,'yyyy-MM-dd'), totalDays, eatingOutDays: preferences.eatingOutDays, leftoverDays: preferences.leftoverDays });
+    // #endregion
   } else {
     // Start from today, run to end of the last week (Saturday)
     planStartDate = startDate;
@@ -94,6 +97,9 @@ export function generateWeeklyPlan(
   // Distribute eating out per week (not randomly across all days)
   const eoPerWeek = numWeeks > 0 ? Math.round(preferences.eatingOutDays / numWeeks) : preferences.eatingOutDays;
   const loPerWeek = numWeeks > 0 ? Math.round(preferences.leftoverDays / numWeeks) : preferences.leftoverDays;
+  // #region agent log
+  console.log('[debug] EO/LO distribution', { totalDays, numWeeks, eoPerWeek, loPerWeek, eatingOutDaysInput: preferences.eatingOutDays, leftoverDaysInput: preferences.leftoverDays, mealSlotsNeeded });
+  // #endregion
 
   const eatingOutIndices = new Set<number>();
   for (let w = 0; w < numWeeks; w++) {

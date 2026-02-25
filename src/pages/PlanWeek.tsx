@@ -18,13 +18,21 @@ export default function PlanWeek() {
     if (!currentPlan || currentPlan.days.length === 0) return 1;
     const totalEO = currentPlan.days.filter(d => d.type === 'eating_out').length;
     const weeks = Math.max(1, Math.ceil(currentPlan.days.length / 7));
-    return Math.round(totalEO / weeks);
+    const result = Math.round(totalEO / weeks);
+    // #region agent log
+    console.log('[debug] EO preference init', { totalEO, planDays: currentPlan.days.length, weeks, result });
+    // #endregion
+    return result;
   });
   const [leftoversPerWeek, setLeftoversPerWeek] = useState(() => {
     if (!currentPlan || currentPlan.days.length === 0) return 1;
     const totalLO = currentPlan.days.filter(d => d.type === 'leftovers').length;
     const weeks = Math.max(1, Math.ceil(currentPlan.days.length / 7));
-    return Math.round(totalLO / weeks);
+    const result = Math.round(totalLO / weeks);
+    // #region agent log
+    console.log('[debug] LO preference init', { totalLO, planDays: currentPlan.days.length, weeks, result });
+    // #endregion
+    return result;
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -73,6 +81,9 @@ export default function PlanWeek() {
         useIngredientsFromFridge: false,
       };
       const plan = generateWeeklyPlan(meals, new Date(), preferences);
+      // #region agent log
+      console.log('[debug] Plan generated', { durationCount, durationType, eatingOutPerWeek, leftoversPerWeek, totalWeeks, eatingOut, leftoversTotal, planDays: plan.days.length, planDuration: plan.duration, planDurationCount: plan.durationCount, eoInPlan: plan.days.filter(d=>d.type==='eating_out').length, loInPlan: plan.days.filter(d=>d.type==='leftovers').length });
+      // #endregion
       setCurrentPlan(plan);
       setIsGenerating(false);
       navigate('/calendar');
