@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, X, Link as LinkIcon, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, X, Link as LinkIcon, Download, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
 import Input from '../components/Input';
@@ -178,13 +178,29 @@ export default function MealDetail() {
       <div className="flex items-center justify-between">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-cream-400 hover:text-cream-100 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-forest-700 border border-forest-500/60 text-cream-300 hover:text-cream-100 hover:bg-forest-600 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium hidden sm:inline">Back</span>
         </button>
-        <Button onClick={handleDelete} variant="danger" className="p-2" title="Delete meal">
-          <Trash2 className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasChanges && (
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gold text-forest-900 font-medium hover:bg-gold-light transition-colors"
+            >
+              <Save className="w-5 h-5" />
+              <span className="text-sm hidden sm:inline">Save</span>
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-terracotta/20 border border-terracotta/40 text-terracotta hover:bg-terracotta/30 transition-colors"
+            title="Delete meal"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
       
       {/* Content */}
@@ -385,15 +401,6 @@ export default function MealDetail() {
         </button>
       </div>
       
-      {/* Floating Save Button */}
-      {hasChanges && (
-        <div className="fixed bottom-20 left-0 right-0 flex justify-center z-50 animate-slideUp">
-          <div className="bg-forest-700 rounded-full shadow-lg border border-gold/30 px-6 py-3 flex items-center gap-4">
-            <span className="text-sm text-cream-400">Unsaved changes</span>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        </div>
-      )}
     </div>
     </div>
   );
