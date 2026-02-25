@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
       : "h-10 w-auto mb-0.5 object-contain brightness-75";
   };
 
-  // Pull-to-refresh
+  // Pull-to-refresh — whole page slides down
   const mainRef = useRef<HTMLElement>(null);
   const touchStartY = useRef<number>(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -47,6 +47,7 @@ export default function Layout({ children }: LayoutProps) {
     if (!touchStartY.current || isRefreshing) return;
     const delta = e.touches[0].clientY - touchStartY.current;
     if (delta > 0 && mainRef.current && mainRef.current.scrollTop === 0) {
+      e.preventDefault();
       setPullDistance(delta * 0.4);
     }
   }, [isRefreshing]);
@@ -81,7 +82,28 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-forest-800 overflow-hidden">
+    <div
+      className="h-screen flex flex-col bg-forest-800 overflow-hidden"
+      onTouchStart={handlePullStart}
+      onTouchMove={handlePullMove}
+      onTouchEnd={handlePullEnd}
+    >
+      {/* Pull-to-refresh indicator + page offset */}
+      {pullDistance > 0 && (
+        <div
+          className="shrink-0 flex items-end justify-center bg-forest-800"
+          style={{ height: `${Math.min(pullDistance, 80)}px` }}
+        >
+          <div
+            className={`w-6 h-6 mb-2 border-2 border-gold border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+            style={{
+              opacity: Math.min(pullDistance / 60, 1),
+              transform: isRefreshing ? undefined : `rotate(${pullDistance * 3}deg)`,
+            }}
+          />
+        </div>
+      )}
+
       {/* Header — fixed top, opaque, full width */}
       <header
         className="shrink-0 border-b border-forest-500/50 z-40 overflow-hidden"
@@ -126,24 +148,11 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Scrollable content area — only this section scrolls, with pull-to-refresh */}
+      {/* Scrollable content area */}
       <main
         ref={mainRef}
         className="flex-1 overflow-y-auto overflow-x-hidden"
-        onTouchStart={handlePullStart}
-        onTouchMove={handlePullMove}
-        onTouchEnd={handlePullEnd}
       >
-        {pullDistance > 0 && (
-          <div
-            className="flex items-center justify-center transition-opacity"
-            style={{ height: `${Math.min(pullDistance, 80)}px`, opacity: Math.min(pullDistance / 60, 1) }}
-          >
-            <div className={`w-6 h-6 border-2 border-gold border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
-              style={{ transform: isRefreshing ? undefined : `rotate(${pullDistance * 3}deg)` }}
-            />
-          </div>
-        )}
         <div className="max-w-7xl w-full mx-auto px-4 pb-6">
           {children}
         </div>
