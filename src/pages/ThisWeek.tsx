@@ -688,9 +688,18 @@ export default function ThisWeek() {
           return (
           <React.Fragment key={ri}>
           {showMonthLabel && (
-            <div className="col-span-7 pt-4 pb-2">
-              <h3 className="text-lg font-serif font-semibold text-cream-100">{format(parseISO(firstDateInRow!), 'MMMM yyyy')}</h3>
-            </div>
+            <>
+              <div className="pt-8 pb-3 border-t border-forest-500/30 mt-4">
+                <h3 className="text-2xl font-serif font-semibold text-cream-100">{format(parseISO(firstDateInRow!), 'MMMM yyyy')}</h3>
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+                {DOW_LABELS.map(d => (
+                  <div key={d} className="text-center text-[10px] font-bold uppercase tracking-widest text-cream-500 py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
           <div className="grid grid-cols-7 gap-1.5 mb-1.5">
             {row.map((dateStr, ci) => {
@@ -803,8 +812,18 @@ export default function ThisWeek() {
           if (weekDays.length === 0) return null;
           const wStart = parseISO(weekDays[0].date);
           const wEnd = parseISO(weekDays[weekDays.length - 1].date);
+          const prevRow = ri > 0 ? monthGridRows[ri - 1] : null;
+          const prevDates = prevRow ? prevRow.filter(Boolean).map(d => daysByDate.get(d!)).filter(Boolean) as DayPlan[] : [];
+          const prevMonth = prevDates.length > 0 ? format(parseISO(prevDates[0].date), 'yyyy-MM') : null;
+          const thisMonth = format(wStart, 'yyyy-MM');
+          const showMobileMonthHeader = prevMonth && thisMonth !== prevMonth;
           return (
             <div key={ri} className="space-y-2">
+              {showMobileMonthHeader && (
+                <div className="pt-4 pb-1 border-t border-forest-500/30">
+                  <h3 className="text-xl font-serif font-semibold text-cream-100">{format(wStart, 'MMMM yyyy')}</h3>
+                </div>
+              )}
               <p className="text-xs font-semibold text-cream-400 uppercase tracking-wider">
                 {format(wStart, 'MMM d')} &ndash; {format(wEnd, 'MMM d')}
               </p>
