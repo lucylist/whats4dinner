@@ -59,24 +59,32 @@ export function generateWeeklyPlan(
     );
   }
   
-  // Shuffle meals for randomness
-  const shuffledMeals = shuffleArray(availableMeals);
-  
   // We need a meal for every non-eating-out day (leftovers get converted later)
   const mealSlotsNeeded = totalDays - preferences.eatingOutDays;
-  
-  // Select meals — no repeats until all meals have been used (deck approach)
+
+  // Select meals week-by-week so the same meal never appears in consecutive weeks
+  const numWeeks = Math.ceil(totalDays / 7);
+  const slotsPerWeek = Math.ceil(mealSlotsNeeded / Math.max(numWeeks, 1));
   const selectedMeals: Meal[] = [];
-  let deck: Meal[] = [];
-  
-  for (let i = 0; i < mealSlotsNeeded; i++) {
-    if (deck.length === 0) {
-      deck = shuffleArray(availableMeals);
-      if (selectedMeals.length > 0 && deck.length > 1 && deck[0].id === selectedMeals[selectedMeals.length - 1].id) {
-        deck.push(deck.shift()!);
-      }
+  let prevWeekIds = new Set<string>();
+
+  for (let w = 0; w < numWeeks; w++) {
+    const slotsThisWeek = Math.min(slotsPerWeek, mealSlotsNeeded - selectedMeals.length);
+    if (slotsThisWeek <= 0) break;
+
+    // Prefer meals not used last week; fall back if the library is too small
+    let pool = availableMeals.filter(m => !prevWeekIds.has(m.id));
+    if (pool.length < slotsThisWeek) pool = availableMeals;
+    let deck = shuffleArray(pool);
+
+    const thisWeekIds = new Set<string>();
+    for (let s = 0; s < slotsThisWeek; s++) {
+      if (deck.length === 0) deck = shuffleArray(pool);
+      const meal = deck.shift()!;
+      selectedMeals.push(meal);
+      thisWeekIds.add(meal.id);
     }
-    selectedMeals.push(deck.shift()!);
+    prevWeekIds = thisWeekIds;
   }
   
   // Determine which days are eating out
@@ -191,15 +199,24 @@ export function regenerateWeek(
   const mealSlotsNeeded = weekDays.length - eatingOutCount;
 
   const available = meals.filter(m => !preferences.excludedMealIds.includes(m.id));
-  let deck: Meal[] = [];
+
+  // Collect meal IDs from the previous and next weeks to avoid repeats
+  const adjacentIds = new Set<string>();
+  const prevStart = (weekIndex - 1) * 7;
+  const nextStart = (weekIndex + 1) * 7;
+  for (const slice of [plan.days.slice(Math.max(0, prevStart), start), plan.days.slice(end, Math.min(nextStart + 7, plan.days.length))]) {
+    for (const d of slice) {
+      if (d.type === 'meal' && d.mealId) adjacentIds.add(d.mealId);
+    }
+  }
+
+  let pool = available.filter(m => !adjacentIds.has(m.id));
+  if (pool.length < mealSlotsNeeded) pool = available;
+
+  let deck = shuffleArray(pool);
   const selected: Meal[] = [];
   for (let i = 0; i < mealSlotsNeeded; i++) {
-    if (deck.length === 0) {
-      deck = shuffleArray(available);
-      if (selected.length > 0 && deck.length > 1 && deck[0].id === selected[selected.length - 1].id) {
-        deck.push(deck.shift()!);
-      }
-    }
+    if (deck.length === 0) deck = shuffleArray(pool);
     selected.push(deck.shift()!);
   }
 

@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, startOfWeek } from 'date-fns';
+import { format, parseISO, startOfWeek, getDay } from 'date-fns';
 import { Calendar, RefreshCw, ChevronLeft, ChevronRight, X, Layers, Square } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
@@ -288,11 +288,36 @@ export default function ThisWeek() {
 
   const totalWeeks = Math.ceil(currentPlan.days.length / 7);
   const isMultiWeek = totalWeeks > 1;
+  const isMonthPlan = (currentPlan.duration === 'month');
 
   const getWeekDays = (weekIdx: number) =>
     currentPlan.days.slice(weekIdx * 7, (weekIdx + 1) * 7);
 
   const currentDays = getWeekDays(currentWeekIndex);
+
+  // Build a Map for quick date → DayPlan lookups in month view
+  const daysByDate = useMemo(() => {
+    const m = new Map<string, DayPlan>();
+    for (const d of currentPlan.days) m.set(d.date, d);
+    return m;
+  }, [currentPlan.days]);
+
+  // Monthly calendar grid: rows of 7 cells, padding before/after the plan days
+  const monthGridRows = useMemo(() => {
+    if (!isMonthPlan || currentPlan.days.length === 0) return [];
+    const firstDate = parseISO(currentPlan.days[0].date);
+    const lastDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
+    const startDow = getDay(firstDate); // 0=Sun
+
+    const cells: (string | null)[] = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (const d of currentPlan.days) cells.push(d.date);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const rows: (string | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+    return rows;
+  }, [isMonthPlan, currentPlan.days]);
 
   const handleRegenerateWeek = (weekIdx: number) => {
     const updated = regenerateWeek(currentPlan, weekIdx, meals, {
@@ -505,6 +530,160 @@ export default function ThisWeek() {
     </div>
   );
 
+  const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const renderMonthGrid = () => (
+    <div>
+      {/* Desktop month grid */}
+      <div className="hidden md:block">
+        {/* Day-of-week headers */}
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+          {DOW_LABELS.map(d => (
+            <div key={d} className="text-center text-[10px] font-bold uppercase tracking-widest text-cream-500 py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+        {/* Weeks */}
+        {monthGridRows.map((row, ri) => (
+          <div key={ri} className="grid grid-cols-7 gap-1.5 mb-1.5">
+            {row.map((dateStr, ci) => {
+              if (!dateStr) return <div key={ci} />;
+              const day = daysByDate.get(dateStr)!;
+              const date = parseISO(dateStr);
+              const meal = day.mealId ? getMeal(day.mealId) : null;
+              const today = isToday(date);
+              const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
+
+              return (
+                <div
+                  key={dateStr}
+                  onClick={() => { if (isClickable) handleViewMeal(meal!.id); }}
+                  className={`rounded-xl border overflow-hidden flex flex-col transition-all duration-200 ${
+                    isClickable ? 'cursor-pointer hover:bg-forest-600/40' : ''
+                  } ${today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/40'}`}
+                  style={{ backgroundColor: '#243424' }}
+                >
+                  {/* Date number */}
+                  <div className={`text-right px-2 pt-1.5 pb-0.5 ${today ? 'bg-terracotta/15' : ''}`}>
+                    <span className={`text-sm font-serif font-bold ${today ? 'text-terracotta' : 'text-cream-300'}`}>
+                      {format(date, 'd')}
+                    </span>
+                  </div>
+                  {/* Compact meal info */}
+                  <div className="px-1.5 pb-1.5 flex-1 flex flex-col gap-1 min-h-[3.5rem]">
+                    {day.type === 'meal' && meal && (
+                      <>
+                        {meal.imageUrl ? (
+                          <img src={meal.imageUrl} alt="" className="w-full aspect-[3/2] object-cover rounded-md" />
+                        ) : (
+                          <div className="w-full aspect-[3/2] rounded-md flex items-center justify-center" style={{ backgroundColor: getPlaceholderStyle(meal.name).bg }}>
+                            <span className="text-cream-300/30 text-lg font-serif font-bold">{getPlaceholderStyle(meal.name).initials}</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] font-semibold text-cream-100 line-clamp-2 leading-tight">{toTitleCase(meal.name)}</p>
+                      </>
+                    )}
+                    {day.type === 'leftovers' && meal && (
+                      <>
+                        <div className="relative">
+                          {meal.imageUrl ? (
+                            <img src={meal.imageUrl} alt="" className="w-full aspect-[3/2] object-cover rounded-md" />
+                          ) : (
+                            <div className="w-full aspect-[3/2] rounded-md flex items-center justify-center" style={{ backgroundColor: getPlaceholderStyle(meal.name).bg }}>
+                              <span className="text-cream-300/30 text-lg font-serif font-bold">{getPlaceholderStyle(meal.name).initials}</span>
+                            </div>
+                          )}
+                          <div className="absolute top-0.5 left-0.5 bg-forest-800/80 text-cream-400 text-[7px] font-bold uppercase tracking-wider px-1 py-px rounded">L</div>
+                        </div>
+                        <p className="text-[10px] font-semibold text-cream-200 line-clamp-2 leading-tight">{toTitleCase(meal.name)}</p>
+                      </>
+                    )}
+                    {day.type === 'eating_out' && (
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-lg">🍽️</span>
+                      </div>
+                    )}
+                    {!meal && day.type === 'meal' && (
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[10px] text-cream-500">—</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile month: stacked list grouped by week */}
+      <div className="md:hidden space-y-6">
+        {monthGridRows.map((row, ri) => {
+          const weekDays = row.filter(Boolean).map(d => daysByDate.get(d!)!);
+          if (weekDays.length === 0) return null;
+          const wStart = parseISO(weekDays[0].date);
+          const wEnd = parseISO(weekDays[weekDays.length - 1].date);
+          return (
+            <div key={ri} className="space-y-2">
+              <p className="text-xs font-semibold text-cream-400 uppercase tracking-wider">
+                {format(wStart, 'MMM d')} &ndash; {format(wEnd, 'MMM d')}
+              </p>
+              {weekDays.map((day) => {
+                const date = parseISO(day.date);
+                const meal = day.mealId ? getMeal(day.mealId) : null;
+                const today = isToday(date);
+                const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
+                return (
+                  <div
+                    key={day.date}
+                    onClick={() => { if (isClickable) handleViewMeal(meal!.id); }}
+                    className={`bg-forest-700 rounded-xl border overflow-hidden transition-all duration-200 ${isClickable ? 'active:scale-[0.98]' : ''} ${
+                      today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 p-3">
+                      <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl flex-shrink-0 ${
+                        today ? 'bg-terracotta/15 text-terracotta' : 'bg-forest-600 text-cream-100'
+                      }`}>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider ${today ? 'text-terracotta/70' : 'text-cream-400'}`}>
+                          {format(date, 'EEE')}
+                        </span>
+                        <span className="text-lg font-serif font-bold leading-tight">{format(date, 'd')}</span>
+                      </div>
+                      {meal ? (
+                        <MealThumbnail meal={meal} size="sm" />
+                      ) : day.type === 'eating_out' ? (
+                        <div className="w-10 h-10 rounded-lg bg-terracotta/15 flex items-center justify-center flex-shrink-0">
+                          <span className="text-base">🍽️</span>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-forest-600 flex items-center justify-center flex-shrink-0">
+                          <span className="text-cream-500 text-sm">?</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        {day.type === 'eating_out' && <p className="font-semibold text-cream-100 text-sm">Eating out</p>}
+                        {day.type === 'leftovers' && meal && (
+                          <div><p className="font-semibold text-cream-100 truncate text-sm">{toTitleCase(meal.name)}</p><p className="text-xs text-cream-500">Leftovers</p></div>
+                        )}
+                        {day.type === 'meal' && meal && (
+                          <p className="font-semibold text-cream-100 truncate text-sm">{toTitleCase(meal.name)}</p>
+                        )}
+                        {!meal && day.type === 'meal' && <p className="text-cream-500 text-sm">No meal</p>}
+                      </div>
+                      {isClickable && <ChevronRight className="w-4 h-4 text-cream-500 flex-shrink-0" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const renderWeekHeader = (weekIdx: number) => {
     const weekDays = getWeekDays(weekIdx);
     if (weekDays.length === 0) return null;
@@ -537,10 +716,12 @@ export default function ThisWeek() {
       <div className="flex justify-between items-center gap-3">
         <div className="min-w-0">
           <h2 className="text-4xl sm:text-5xl font-serif text-cream-100 truncate">
-            This Week's Menu
+            {isMonthPlan ? 'This Month\'s Menu' : 'This Week\'s Menu'}
           </h2>
           <p className="text-sm sm:text-base text-cream-400 mt-0.5">
-            Week of {format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}
+            {isMonthPlan
+              ? format(parseISO(currentPlan.days[0].date), 'MMMM yyyy')
+              : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}
           </p>
         </div>
         
@@ -564,8 +745,8 @@ export default function ThisWeek() {
         </Button>
       </div>
 
-      {/* View toggle + paginated nav (multi-week only) */}
-      {isMultiWeek && (
+      {/* View toggle + paginated nav (multi-week, non-month only) */}
+      {isMultiWeek && !isMonthPlan && (
         <div className="space-y-3">
           {/* View mode toggle */}
           <div className="flex items-center gap-1">
@@ -626,8 +807,10 @@ export default function ThisWeek() {
         </div>
       )}
 
-      {/* Calendar: stacked or paginated */}
-      {isMultiWeek && viewMode === 'stacked' ? (
+      {/* Calendar */}
+      {isMonthPlan ? (
+        renderMonthGrid()
+      ) : isMultiWeek && viewMode === 'stacked' ? (
         <div className="space-y-8">
           {Array.from({ length: totalWeeks }, (_, weekIdx) => (
             <div key={weekIdx} className="space-y-3">
