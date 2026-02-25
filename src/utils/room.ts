@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'dinner-app-family-room';
+const STORAGE_KEY = 'whats4dinner-family-room';
 
 export function generateRoomId(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyz23456789';

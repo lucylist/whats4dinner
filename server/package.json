@@ -1,5 +1,5 @@
 {
-  "name": "dinner-app-server",
+  "name": "whats4dinner-server",
   "version": "1.0.0",
   "description": "Backend server for AI image generation",
   "main": "server.js",

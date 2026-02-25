@@ -6,7 +6,7 @@ Your dinner planning app is ready to use! Here's how to get started.
 
 1. **Navigate to the app directory:**
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app
+cd /Users/lucylist/Documents/cursor/whats4dinner
 ```
 
 2. **Install dependencies:**

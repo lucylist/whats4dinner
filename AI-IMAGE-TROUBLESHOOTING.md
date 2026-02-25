@@ -107,7 +107,7 @@ Everything is working! You can now:
 **Note:** The backend server needs to be running for AI image generation to work. If you restart your computer, remember to start it again with:
 
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app/server
+cd /Users/lucylist/Documents/cursor/whats4dinner/server
 NODE_TLS_REJECT_UNAUTHORIZED=0 \
 OPENAI_API_KEY="shopify-eyJpZCI6IjY3Yjg2Yzk2ZWFlODMyYjFmNGVjOGQ4Y2IyOTBkODQ4IiwibW9kZSI6InBlcnNvbmFsIiwiZW1haWwiOiJsdWN5Lmxpc3RAc2hvcGlmeS5jb20iLCJleHBpcnkiOjE3Njg2NzQ0ODV9-VPy6ifkWLAwPk/QlQKtgn42yH2FEShCoiUQY1iBtgCA=" \
 OPENAI_BASE_URL="https://proxy.shopify.ai/v1" \

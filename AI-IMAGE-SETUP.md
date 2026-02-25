@@ -26,7 +26,7 @@ Your dinner app now automatically generates beautiful, AI-powered food images fo
 
 ## ⚙️ Step 2: Add API Key to Server
 
-1. Open the file: `/dinner-app/server/.env`
+1. Open the file: `/whats4dinner/server/.env`
 2. Replace `your_openai_api_key_here` with your actual key:
    ```
    OPENAI_API_KEY=sk-your-actual-key-here
@@ -39,7 +39,7 @@ Your dinner app now automatically generates beautiful, AI-powered food images fo
 Open a **new terminal** and run:
 
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app/server
+cd /Users/lucylist/Documents/cursor/whats4dinner/server
 npm start
 ```
 
@@ -56,7 +56,7 @@ You should see:
 In your **existing terminal** (or another new one):
 
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app
+cd /Users/lucylist/Documents/cursor/whats4dinner
 npm run dev
 ```
 
@@ -113,13 +113,13 @@ When you add a meal like "Spaghetti Carbonara":
 
 ### Backend Server (Terminal 1):
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app/server
+cd /Users/lucylist/Documents/cursor/whats4dinner/server
 npm start
 ```
 
 ### Frontend App (Terminal 2):
 ```bash
-cd /Users/lucylist/Documents/cursor/dinner-app
+cd /Users/lucylist/Documents/cursor/whats4dinner
 npm run dev
 ```
 

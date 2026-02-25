@@ -164,7 +164,7 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
           firestoreRef.current = fb;
         }
       } catch (e) {
-        console.error('[dinner-app] Init error (using localStorage):', e);
+        console.error('[whats4dinner] Init error (using localStorage):', e);
       }
     })();
   }, [roomId]);

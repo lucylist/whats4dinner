@@ -13,7 +13,7 @@ export default class ErrorBoundary extends React.Component<{ children: React.Rea
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[dinner-app] React error boundary caught:', error, info.componentStack);
+    console.error('[whats4dinner] React error boundary caught:', error, info.componentStack);
   }
 
   render() {

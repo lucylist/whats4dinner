@@ -189,7 +189,7 @@ All new features are:
 
 - `NEW-FEATURES.md` - Quick add & recipe import guide
 - `AI-PHOTO-SCAN.md` - Complete photo scanning documentation
-- `dinner-app-spec.md` - Full feature specifications
+- `whats4dinner-spec.md` - Full feature specifications
 - `QUICK-START.md` - Getting started guide
 - `README.md` - Complete project overview
 

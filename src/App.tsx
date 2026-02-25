@@ -21,7 +21,7 @@ function App() {
 
   useEffect(() => {
     const existing = resolveRoom();
-    console.log('[dinner-app] resolveRoom →', existing, '| URL:', window.location.href, '| localStorage:', localStorage.getItem('dinner-app-family-room'));
+    console.log('[whats4dinner] resolveRoom →', existing, '| URL:', window.location.href, '| localStorage:', localStorage.getItem('whats4dinner-family-room'));
     if (existing) {
       setRoomId(existing);
       setRoomInUrl(existing);

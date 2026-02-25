@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 // GITHUB_PAGES base path is set automatically by the deploy workflow.
 // For Quick deploy, base stays as '/'.
 export default defineConfig({
-  base: process.env.GITHUB_PAGES === 'true' ? '/dinner-app/' : '/',
+  base: process.env.GITHUB_PAGES === 'true' ? '/whats4dinner/' : '/',
   plugins: [react()],
   server: {
     port: 3000,
