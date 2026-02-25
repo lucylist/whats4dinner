@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays } from 'date-fns';
+import { addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays, getDay } from 'date-fns';
 import { ArrowLeft, Sparkles, Minus, Plus, ChefHat, UtensilsCrossed, Cookie, ChevronDown, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateWeeklyPlan } from '../utils/planGenerator';
@@ -37,17 +37,28 @@ export default function PlanWeek() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Calculate actual days matching what the generator will produce
-  const actualDays = useMemo(() => {
+  // Calculate actual days and calendar-aligned weeks matching the generator
+  const { actualDays, totalWeeks } = useMemo(() => {
     const today = new Date();
+    let days: number;
     if (durationType === 'month') {
       const lastMonthEnd = endOfMonth(addMonths(today, durationCount - 1));
-      return differenceInCalendarDays(lastMonthEnd, today) + 1;
+      days = differenceInCalendarDays(lastMonthEnd, today) + 1;
+    } else {
+      const lastSat = endOfWeek(addDays(today, (durationCount - 1) * 7), { weekStartsOn: 0 });
+      days = differenceInCalendarDays(lastSat, today) + 1;
     }
-    const lastSat = endOfWeek(addDays(today, (durationCount - 1) * 7), { weekStartsOn: 0 });
-    return differenceInCalendarDays(lastSat, today) + 1;
+    // Count Sun-Sat calendar weeks (same logic as generator)
+    let weeks = 0;
+    let i = 0;
+    while (i < days) {
+      const dow = getDay(addDays(today, i));
+      const daysUntilSat = 6 - dow;
+      i = Math.min(i + daysUntilSat + 1, days);
+      weeks++;
+    }
+    return { actualDays: days, totalWeeks: Math.max(1, weeks) };
   }, [durationType, durationCount]);
-  const totalWeeks = Math.max(1, Math.ceil(actualDays / 7));
   const maxCount = durationType === 'week' ? 4 : 3;
   const totalDays = actualDays;
   const eatingOut = eatingOutPerWeek * totalWeeks;

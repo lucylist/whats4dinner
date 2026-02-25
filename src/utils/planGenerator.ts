@@ -1,6 +1,6 @@
 // Meal plan generator (supports week/month durations)
 
-import { startOfWeek, addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays, format } from 'date-fns';
+import { startOfWeek, addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays, getDay, format } from 'date-fns';
 import { Meal, WeeklyPlan, DayPlan, PlannerPreferences } from '../types';
 import { generateId } from './storage';
 
@@ -94,20 +94,30 @@ export function generateWeeklyPlan(
     prevWeekIds = thisWeekIds;
   }
   
-  // Distribute eating out per week (not randomly across all days)
-  const eoPerWeek = numWeeks > 0 ? Math.round(preferences.eatingOutDays / numWeeks) : preferences.eatingOutDays;
-  const loPerWeek = numWeeks > 0 ? Math.round(preferences.leftoverDays / numWeeks) : preferences.leftoverDays;
+  // Build calendar-aligned Sun-Sat week ranges so distribution matches the display
+  const calendarWeeks: { start: number; end: number }[] = [];
+  {
+    let i = 0;
+    while (i < totalDays) {
+      const dayOfWeek = getDay(addDays(planStartDate, i)); // 0=Sun
+      const daysUntilSat = 6 - dayOfWeek;
+      const weekEnd = Math.min(i + daysUntilSat + 1, totalDays);
+      calendarWeeks.push({ start: i, end: weekEnd });
+      i = weekEnd;
+    }
+  }
+  const calWeekCount = calendarWeeks.length;
+  const eoPerWeek = calWeekCount > 0 ? Math.round(preferences.eatingOutDays / calWeekCount) : preferences.eatingOutDays;
+  const loPerWeek = calWeekCount > 0 ? Math.round(preferences.leftoverDays / calWeekCount) : preferences.leftoverDays;
   // #region agent log
-  console.log('[debug] EO/LO distribution', { totalDays, numWeeks, eoPerWeek, loPerWeek, eatingOutDaysInput: preferences.eatingOutDays, leftoverDaysInput: preferences.leftoverDays, mealSlotsNeeded });
+  console.log('[debug] EO/LO distribution', { totalDays, calWeekCount, eoPerWeek, loPerWeek, eatingOutDaysInput: preferences.eatingOutDays, leftoverDaysInput: preferences.leftoverDays, mealSlotsNeeded, calendarWeeks });
   // #endregion
 
   const eatingOutIndices = new Set<number>();
-  for (let w = 0; w < numWeeks; w++) {
-    const weekStart = w * 7;
-    const weekEnd = Math.min(weekStart + 7, totalDays);
-    const weekLen = weekEnd - weekStart;
+  for (const cw of calendarWeeks) {
+    const weekLen = cw.end - cw.start;
     const weekIndices = getRandomDayIndices(weekLen, Math.min(eoPerWeek, weekLen));
-    for (const idx of weekIndices) eatingOutIndices.add(weekStart + idx);
+    for (const idx of weekIndices) eatingOutIndices.add(cw.start + idx);
   }
 
   // Build initial day plans (without leftovers yet)
@@ -141,16 +151,12 @@ export function generateWeeklyPlan(
     }
   }
 
-  // Distribute leftovers per week
-  for (let w = 0; w < numWeeks; w++) {
-    const weekStart = w * 7;
-    const weekEnd = Math.min(weekStart + 7, totalDays);
-
+  // Distribute leftovers per calendar week
+  for (const cw of calendarWeeks) {
     const validInWeek: number[] = [];
-    for (let i = weekStart; i < weekEnd; i++) {
+    for (let i = cw.start; i < cw.end; i++) {
       if (days[i].type === 'eating_out') continue;
       if (i > 0 && days[i - 1].type === 'eating_out') continue;
-      // Need at least 2 meal days before this index (across the whole plan)
       const prevMeals = days.slice(0, i).filter(d => d.type === 'meal').length;
       if (prevMeals >= 2) validInWeek.push(i);
     }
