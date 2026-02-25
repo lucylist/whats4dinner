@@ -176,6 +176,74 @@ export function generateWeeklyPlan(
   return plan;
 }
 
+export function regenerateWeek(
+  plan: WeeklyPlan,
+  weekIndex: number,
+  meals: Meal[],
+  preferences: PlannerPreferences
+): WeeklyPlan {
+  const start = weekIndex * 7;
+  const end = Math.min(start + 7, plan.days.length);
+  const weekDays = plan.days.slice(start, end);
+
+  const eatingOutCount = weekDays.filter(d => d.type === 'eating_out').length;
+  const leftoverCount = weekDays.filter(d => d.type === 'leftovers').length;
+  const mealSlotsNeeded = weekDays.length - eatingOutCount;
+
+  const available = meals.filter(m => !preferences.excludedMealIds.includes(m.id));
+  let deck: Meal[] = [];
+  const selected: Meal[] = [];
+  for (let i = 0; i < mealSlotsNeeded; i++) {
+    if (deck.length === 0) {
+      deck = shuffleArray(available);
+      if (selected.length > 0 && deck.length > 1 && deck[0].id === selected[selected.length - 1].id) {
+        deck.push(deck.shift()!);
+      }
+    }
+    selected.push(deck.shift()!);
+  }
+
+  const eatingOutIndices = getRandomDayIndices(weekDays.length, eatingOutCount);
+
+  const newWeekDays: DayPlan[] = [];
+  let mealIdx = 0;
+  for (let i = 0; i < weekDays.length; i++) {
+    const dateString = weekDays[i].date;
+    if (eatingOutIndices.includes(i)) {
+      newWeekDays.push({ date: dateString, mealId: null, type: 'eating_out', leftoverFromDate: null, customNote: '', locked: false });
+    } else {
+      const meal = selected[mealIdx] || selected[0];
+      mealIdx++;
+      newWeekDays.push({ date: dateString, mealId: meal?.id || null, type: 'meal', leftoverFromDate: null, customNote: '', locked: false });
+    }
+  }
+
+  const validLeftoverIndices: number[] = [];
+  for (let i = 0; i < newWeekDays.length; i++) {
+    if (newWeekDays[i].type === 'eating_out') continue;
+    if (i > 0 && newWeekDays[i - 1].type === 'eating_out') continue;
+    if (newWeekDays.slice(0, i).filter(d => d.type === 'meal').length >= 2) {
+      validLeftoverIndices.push(i);
+    }
+  }
+  const shuffledValid = shuffleArray(validLeftoverIndices);
+  const leftoverIndices = shuffledValid.slice(0, Math.min(leftoverCount, validLeftoverIndices.length));
+  for (const idx of leftoverIndices) {
+    const prevMeals = newWeekDays.slice(0, idx).filter(d => d.type === 'meal' && d.mealId);
+    const src = prevMeals[prevMeals.length - 1];
+    if (src) {
+      newWeekDays[idx] = { ...newWeekDays[idx], mealId: src.mealId, type: 'leftovers', leftoverFromDate: src.date };
+    }
+  }
+
+  const allDays = [...plan.days];
+  for (let i = 0; i < newWeekDays.length; i++) {
+    allDays[start + i] = newWeekDays[i];
+  }
+
+  return { ...plan, days: allDays, modifiedAt: new Date().toISOString() };
+}
+
 // Update a specific day in the plan
 export function updateDayPlan(
   plan: WeeklyPlan,
