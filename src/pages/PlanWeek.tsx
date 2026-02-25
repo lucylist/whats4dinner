@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Minus, Plus, ChefHat, UtensilsCrossed, Cookie, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Minus, Plus, ChefHat, UtensilsCrossed, Cookie, ChevronDown, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateWeeklyPlan } from '../utils/planGenerator';
 import { PlannerPreferences, PlanDuration } from '../types';
+import { clearSavedRoom } from '../utils/room';
 import Button from '../components/Button';
 
 export default function PlanWeek() {
-  const { meals, setCurrentPlan } = useApp();
+  const { meals, setCurrentPlan, roomId } = useApp();
   const navigate = useNavigate();
   
   const [durationCount, setDurationCount] = useState(1);
@@ -256,7 +257,7 @@ export default function PlanWeek() {
       </div>
 
       {/* Generate button */}
-      <div className="pb-8">
+      <div className="pb-4">
         <Button
           fullWidth
           size="lg"
@@ -273,6 +274,33 @@ export default function PlanWeek() {
           </p>
         )}
       </div>
+
+      {/* Family code & leave */}
+      {roomId && (
+        <div className="border-t border-forest-500/40 pt-5 pb-8 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-cream-500 uppercase tracking-wider">Family code</p>
+              <p className="text-sm text-cream-300 font-mono tracking-wider">{roomId}</p>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm('Leave this family? You can rejoin later with the same code.')) {
+                  clearSavedRoom();
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('family');
+                  url.hash = '';
+                  window.location.href = url.toString();
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-cream-400 hover:text-terracotta hover:bg-terracotta/10 border border-forest-500/40 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Leave family</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
