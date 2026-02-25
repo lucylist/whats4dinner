@@ -150,8 +150,15 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
 
           if (fsMeals.length > 0 || fsPlans.length > 0 || fsInv.length > 0) {
             setMeals(fsMeals);
-            setCurrentPlanState(normalizePlan(fsPlans[0] || null));
+            for (const m of fsMeals) saveMealToStorage(m);
+            const latestPlan = fsPlans.length > 0
+              ? fsPlans.sort((a: WeeklyPlan, b: WeeklyPlan) => (b.modifiedAt || b.createdAt || '').localeCompare(a.modifiedAt || a.createdAt || ''))[0]
+              : null;
+            const normalized = normalizePlan(latestPlan);
+            setCurrentPlanState(normalized);
+            setCurrentWeeklyPlan(normalized);
             setInventory(fsInv);
+            for (const inv of fsInv) saveInventoryItemToStorage(inv);
           }
 
           firestoreRef.current = fb;
@@ -209,13 +216,34 @@ export function AppProvider({ children, roomId = null }: AppProviderProps) {
   const setCurrentPlan = async (plan: WeeklyPlan | null) => {
     setCurrentWeeklyPlan(plan);
     setCurrentPlanState(plan);
-    if (plan) fsWrite('plans', plan.id, plan);
+    if (plan) {
+      // Delete stale plan docs before writing the new one
+      const fb = firestoreRef.current;
+      if (fb && roomId) {
+        try {
+          const snap = await fb.getDocs(fb.collection(fb.db, 'rooms', roomId, 'plans'));
+          const deletes = snap.docs
+            .filter((d: any) => d.id !== plan.id)
+            .map((d: any) => fb.deleteDoc(d.ref));
+          await Promise.all(deletes);
+        } catch { /* non-fatal */ }
+      }
+      fsWrite('plans', plan.id, plan);
+    }
     if (quickDB && plan) {
       try {
         const col = qCol('plans', roomId);
         const existing = await quickDB.collection(col).find();
-        if (existing?.length > 0) await quickDB.collection(col).update(existing[0].id, plan);
-        else await quickDB.collection(col).create(plan);
+        if (existing?.length > 0) {
+          for (const old of existing) {
+            if (old.id !== plan.id) await quickDB.collection(col).delete(old.id).catch(() => {});
+          }
+          const match = existing.find((e: any) => e.id === plan.id);
+          if (match) await quickDB.collection(col).update(match.id, plan);
+          else await quickDB.collection(col).create(plan);
+        } else {
+          await quickDB.collection(col).create(plan);
+        }
       } catch (e) { console.log(e); }
     }
   };
