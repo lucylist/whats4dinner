@@ -88,12 +88,12 @@ export default function ThisWeek() {
           <Calendar className="w-10 h-10 text-cobalt" />
         </div>
         <div>
-          <h2 className="text-4xl sm:text-5xl font-serif text-cream-100 mb-2">No Calendar Yet</h2>
+          <h2 className="text-4xl sm:text-5xl font-serif text-cream-100 mb-2">No calendar yet</h2>
           <p className="text-cream-400 mb-6">
             Plan your week and we'll fill in the meals for you.
           </p>
           <Button onClick={() => navigate('/plan-week')}>
-            Plan Your Week
+            Plan your week
           </Button>
         </div>
       </div>
@@ -694,7 +694,7 @@ export default function ThisWeek() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg sm:text-xl font-serif font-semibold text-cream-100">
-            Week {weekIdx + 1}
+            Week {weekIdx + 1} of {totalWeeks}
           </h3>
           <p className="text-xs sm:text-sm text-cream-400">
             {format(startDate, 'MMM d')} &ndash; {format(endDate, 'MMM d, yyyy')}
@@ -713,36 +713,35 @@ export default function ThisWeek() {
   return (
     <div className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center gap-3">
-        <div className="min-w-0">
-          <h2 className="text-4xl sm:text-5xl font-serif text-cream-100 truncate">
-            {isMonthPlan ? 'This Month\'s Menu' : 'This Week\'s Menu'}
+      <div>
+        <div className="flex justify-between items-center gap-3">
+          <h2 className="text-4xl sm:text-5xl font-serif text-cream-100 truncate min-w-0">
+            {isMonthPlan ? 'This month\'s menu' : 'This week\'s menu'}
           </h2>
-          <p className="text-sm sm:text-base text-cream-400 mt-0.5">
-            {isMonthPlan
-              ? format(parseISO(currentPlan.days[0].date), 'MMMM yyyy')
-              : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}
-          </p>
+          <Button
+            onClick={() => {
+              const plan = generateWeeklyPlan(meals, new Date(), {
+                duration: currentPlan.duration || 'week',
+                durationCount: currentPlan.durationCount || 1,
+                eatingOutDays: currentPlan.days.filter(d => d.type === 'eating_out').length,
+                leftoverDays: currentPlan.days.filter(d => d.type === 'leftovers').length,
+                excludedMealIds: [],
+                preferQuickMeals: false,
+                useIngredientsFromFridge: false,
+              });
+              setCurrentPlan(plan);
+            }}
+            className="flex items-center gap-2 flex-shrink-0"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Regenerate</span>
+          </Button>
         </div>
-        
-        <Button
-          onClick={() => {
-            const plan = generateWeeklyPlan(meals, new Date(), {
-              duration: currentPlan.duration || 'week',
-              durationCount: currentPlan.durationCount || 1,
-              eatingOutDays: currentPlan.days.filter(d => d.type === 'eating_out').length,
-              leftoverDays: currentPlan.days.filter(d => d.type === 'leftovers').length,
-              excludedMealIds: [],
-              preferQuickMeals: false,
-              useIngredientsFromFridge: false,
-            });
-            setCurrentPlan(plan);
-          }}
-          className="flex items-center gap-2 flex-shrink-0"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span className="hidden sm:inline">Regenerate</span>
-        </Button>
+        <p className="text-sm sm:text-base text-cream-400 mt-0.5">
+          {isMonthPlan
+            ? format(parseISO(currentPlan.days[0].date), 'MMMM yyyy')
+            : `Week of ${format(startOfWeek(new Date(), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}
+        </p>
       </div>
 
       {/* View toggle + paginated nav (multi-week, non-month only) */}
@@ -837,6 +836,7 @@ export default function ThisWeek() {
           <div className="bg-forest-700 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm p-5 pb-8 sm:pb-5 max-h-[80vh] flex flex-col border border-forest-500/60">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-serif font-semibold text-cream-100">Pick leftover meal</h3>
+
               <button
                 onClick={() => {
                   if (currentPlan) {
