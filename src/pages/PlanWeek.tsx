@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { addDays, addMonths, endOfWeek, endOfMonth, differenceInCalendarDays } from 'date-fns';
 import { ArrowLeft, Sparkles, Minus, Plus, ChefHat, UtensilsCrossed, Cookie, ChevronDown, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateWeeklyPlan } from '../utils/planGenerator';
@@ -36,9 +37,19 @@ export default function PlanWeek() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const totalWeeks = durationType === 'month' ? durationCount * 4 : durationCount;
+  // Calculate actual days matching what the generator will produce
+  const actualDays = useMemo(() => {
+    const today = new Date();
+    if (durationType === 'month') {
+      const lastMonthEnd = endOfMonth(addMonths(today, durationCount - 1));
+      return differenceInCalendarDays(lastMonthEnd, today) + 1;
+    }
+    const lastSat = endOfWeek(addDays(today, (durationCount - 1) * 7), { weekStartsOn: 0 });
+    return differenceInCalendarDays(lastSat, today) + 1;
+  }, [durationType, durationCount]);
+  const totalWeeks = Math.max(1, Math.ceil(actualDays / 7));
   const maxCount = durationType === 'week' ? 4 : 3;
-  const totalDays = totalWeeks * 7;
+  const totalDays = actualDays;
   const eatingOut = eatingOutPerWeek * totalWeeks;
   const leftoversTotal = leftoversPerWeek * totalWeeks;
   const cookingPerWeek = 7 - eatingOutPerWeek - leftoversPerWeek;
