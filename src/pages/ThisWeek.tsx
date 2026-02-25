@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, startOfWeek } from 'date-fns';
-import { Calendar, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Calendar, RefreshCw, ChevronLeft, ChevronRight, X, Layers, Square } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Button from '../components/Button';
 import { DayPlan, Meal } from '../types';
@@ -568,26 +568,28 @@ export default function ThisWeek() {
       {isMultiWeek && (
         <div className="space-y-3">
           {/* View mode toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setViewMode('stacked')}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+              className={`p-1.5 rounded-lg border transition-colors ${
                 viewMode === 'stacked'
                   ? 'bg-cobalt/20 border-cobalt/40 text-cobalt'
                   : 'bg-forest-700 border-forest-500/60 text-cream-400 hover:text-cream-100'
               }`}
+              title="All weeks"
             >
-              All weeks
+              <Layers className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('paginated')}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+              className={`p-1.5 rounded-lg border transition-colors ${
                 viewMode === 'paginated'
                   ? 'bg-cobalt/20 border-cobalt/40 text-cobalt'
                   : 'bg-forest-700 border-forest-500/60 text-cream-400 hover:text-cream-100'
               }`}
+              title="One at a time"
             >
-              One at a time
+              <Square className="w-4 h-4" />
             </button>
           </div>
 
