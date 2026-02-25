@@ -1,6 +1,6 @@
 // Meal plan generator (supports week/month durations)
 
-import { startOfWeek, addDays, endOfMonth, differenceInCalendarDays, format } from 'date-fns';
+import { startOfWeek, addDays, endOfWeek, endOfMonth, differenceInCalendarDays, format } from 'date-fns';
 import { Meal, WeeklyPlan, DayPlan, PlannerPreferences } from '../types';
 import { generateId } from './storage';
 
@@ -42,9 +42,13 @@ export function generateWeeklyPlan(
     const monthEnd = endOfMonth(startDate);
     totalDays = differenceInCalendarDays(monthEnd, startDate) + 1;
   } else {
-    // Default to week
-    planStartDate = startOfWeek(startDate, { weekStartsOn: 0 }); // Sunday
-    totalDays = preferences.durationCount * 7;
+    // Start from today, run to end of the last week (Saturday)
+    planStartDate = startDate;
+    const lastSaturday = endOfWeek(
+      addDays(startDate, (preferences.durationCount - 1) * 7),
+      { weekStartsOn: 0 }
+    );
+    totalDays = differenceInCalendarDays(lastSaturday, startDate) + 1;
   }
   
   // Filter meals based on preferences

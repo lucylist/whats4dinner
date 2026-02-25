@@ -281,19 +281,42 @@ export default function ThisWeek() {
     touchStartY.current = null;
     if (Math.abs(deltaX) < 60 || Math.abs(deltaY) > Math.abs(deltaX)) return;
     if (currentPlan.days.length <= 7) return;
-    const maxWeek = Math.floor((currentPlan.days.length - 1) / 7);
+    const maxWeek = weekRows.length - 1;
     if (deltaX < 0 && currentWeekIndex < maxWeek) setCurrentWeekIndex(currentWeekIndex + 1);
     else if (deltaX > 0 && currentWeekIndex > 0) setCurrentWeekIndex(currentWeekIndex - 1);
   }, [currentWeekIndex, currentPlan]);
 
-  const totalWeeks = Math.ceil(currentPlan.days.length / 7);
-  const isMultiWeek = totalWeeks > 1;
   const isMonthPlan = (currentPlan.duration === 'month');
 
-  const getWeekDays = (weekIdx: number) =>
-    currentPlan.days.slice(weekIdx * 7, (weekIdx + 1) * 7);
+  // Build full Sun-Sat week rows, with null for days not in the plan
+  const weekRows = useMemo(() => {
+    if (isMonthPlan || currentPlan.days.length === 0) return [];
+    const firstDate = parseISO(currentPlan.days[0].date);
+    const lastDate = parseISO(currentPlan.days[currentPlan.days.length - 1].date);
+    const weekStart = startOfWeek(firstDate, { weekStartsOn: 0 });
 
-  const currentDays = getWeekDays(currentWeekIndex);
+    const dateMap = new Map<string, DayPlan>();
+    for (const d of currentPlan.days) dateMap.set(d.date, d);
+
+    const rows: (DayPlan | null)[][] = [];
+    let cursor = weekStart;
+    while (cursor <= lastDate) {
+      const row: (DayPlan | null)[] = [];
+      for (let i = 0; i < 7; i++) {
+        const key = format(cursor, 'yyyy-MM-dd');
+        row.push(dateMap.get(key) || null);
+        cursor = addDays(cursor, 1);
+      }
+      rows.push(row);
+    }
+    return rows;
+  }, [currentPlan.days, isMonthPlan]);
+
+  const totalWeeks = isMonthPlan ? 1 : weekRows.length;
+  const isMultiWeek = totalWeeks > 1;
+
+  const getWeekRow = (weekIdx: number) => weekRows[weekIdx] || [];
+  const currentRow = getWeekRow(currentWeekIndex);
 
   // Build a Map for quick date → DayPlan lookups in month view
   const daysByDate = useMemo(() => {
@@ -336,26 +359,126 @@ export default function ThisWeek() {
   }, [isMonthPlan, currentPlan.days]);
 
   const handleRegenerateWeek = (weekIdx: number) => {
-    const updated = regenerateWeek(currentPlan, weekIdx, meals, {
-      duration: currentPlan.duration || 'week',
-      durationCount: currentPlan.durationCount || 1,
-      eatingOutDays: currentPlan.days.filter(d => d.type === 'eating_out').length,
-      leftoverDays: currentPlan.days.filter(d => d.type === 'leftovers').length,
-      excludedMealIds: [],
-      preferQuickMeals: false,
-      useIngredientsFromFridge: false,
-    });
-    setCurrentPlan(updated);
+    // Map display week index to plan day indices
+    const row = getWeekRow(weekIdx);
+    const planDays = row.filter((d): d is DayPlan => d !== null);
+    if (planDays.length === 0) return;
+    const firstDate = planDays[0].date;
+    const lastDate = planDays[planDays.length - 1].date;
+    const startIdx = currentPlan.days.findIndex(d => d.date === firstDate);
+    const endIdx = currentPlan.days.findIndex(d => d.date === lastDate);
+    if (startIdx < 0) return;
+
+    // Use a custom regeneration range
+    const sliceLen = endIdx - startIdx + 1;
+    const available = [...meals];
+
+    const adjacentIds = new Set<string>();
+    for (const d of currentPlan.days.slice(Math.max(0, startIdx - 7), startIdx)) {
+      if (d.type === 'meal' && d.mealId) adjacentIds.add(d.mealId);
+    }
+    for (const d of currentPlan.days.slice(endIdx + 1, Math.min(endIdx + 8, currentPlan.days.length))) {
+      if (d.type === 'meal' && d.mealId) adjacentIds.add(d.mealId);
+    }
+
+    const eatingOutCount = planDays.filter(d => d.type === 'eating_out').length;
+    const leftoverCount = planDays.filter(d => d.type === 'leftovers').length;
+    const mealSlotsNeeded = sliceLen - eatingOutCount;
+
+    let pool = available.filter(m => !adjacentIds.has(m.id));
+    if (pool.length < mealSlotsNeeded) pool = available;
+    const shuffleArr = <T,>(arr: T[]) => { const s = [...arr]; for (let i = s.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [s[i], s[j]] = [s[j], s[i]]; } return s; };
+
+    let deck = shuffleArr(pool);
+    const selected: Meal[] = [];
+    for (let i = 0; i < mealSlotsNeeded; i++) {
+      if (deck.length === 0) deck = shuffleArr(pool);
+      selected.push(deck.shift()!);
+    }
+
+    const getRandomIndices = (total: number, count: number) => {
+      const indices: number[] = [];
+      while (indices.length < Math.min(count, total)) {
+        const r = Math.floor(Math.random() * total);
+        if (!indices.includes(r)) indices.push(r);
+      }
+      return indices;
+    };
+
+    const eoIndices = getRandomIndices(sliceLen, eatingOutCount);
+    const newDays: DayPlan[] = [];
+    let mIdx = 0;
+    for (let i = 0; i < sliceLen; i++) {
+      const dateStr = currentPlan.days[startIdx + i].date;
+      if (eoIndices.includes(i)) {
+        newDays.push({ date: dateStr, mealId: null, type: 'eating_out', leftoverFromDate: null, customNote: '', locked: false });
+      } else {
+        const meal = selected[mIdx] || selected[0];
+        mIdx++;
+        newDays.push({ date: dateStr, mealId: meal?.id || null, type: 'meal', leftoverFromDate: null, customNote: '', locked: false });
+      }
+    }
+
+    // Place leftovers
+    const validLO: number[] = [];
+    for (let i = 0; i < newDays.length; i++) {
+      if (newDays[i].type === 'eating_out') continue;
+      if (i > 0 && newDays[i - 1].type === 'eating_out') continue;
+      if (newDays.slice(0, i).filter(d => d.type === 'meal').length >= 2) validLO.push(i);
+    }
+    for (const idx of shuffleArr(validLO).slice(0, Math.min(leftoverCount, validLO.length))) {
+      const prev = newDays.slice(0, idx).filter(d => d.type === 'meal' && d.mealId);
+      const src = prev[prev.length - 1];
+      if (src) newDays[idx] = { ...newDays[idx], mealId: src.mealId, type: 'leftovers', leftoverFromDate: src.date };
+    }
+
+    const allDays = [...currentPlan.days];
+    for (let i = 0; i < newDays.length; i++) allDays[startIdx + i] = newDays[i];
+    setCurrentPlan({ ...currentPlan, days: allDays, modifiedAt: new Date().toISOString() });
   };
 
-  const renderWeekGrid = (weekDays: DayPlan[], weekIdx: number) => (
+  const renderWeekGrid = (weekRow: (DayPlan | null)[], weekIdx: number) => {
+    // Compute the date for each slot (Sun-Sat) using the first non-null day as anchor
+    const anchorDay = weekRow.find(d => d !== null);
+    const anchorDate = anchorDay ? parseISO(anchorDay.date) : new Date();
+    const anchorIdx = weekRow.indexOf(anchorDay!);
+    const slotDates = weekRow.map((_, i) => addDays(anchorDate, i - anchorIdx));
+
+    // Filter to only plan days for mobile
+    const mobileDays = weekRow.filter((d): d is DayPlan => d !== null);
+
+    return (
     <div ref={!isMultiWeek || viewMode === 'paginated' ? swipeContainerRef : undefined} onTouchStart={!isMultiWeek || viewMode === 'paginated' ? handleTouchStart : undefined} onTouchEnd={!isMultiWeek || viewMode === 'paginated' ? handleTouchEnd : undefined}>
       {/* Desktop grid */}
       <div className="hidden md:grid grid-cols-7 gap-2.5">
-        {weekDays.map((day) => {
-          const date = parseISO(day.date);
-          const meal = day.mealId ? getMeal(day.mealId) : null;
+        {weekRow.map((day, slotIdx) => {
+          const date = slotDates[slotIdx];
           const today = isToday(date);
+
+          // Blank cell for days not in the plan
+          if (!day) {
+            return (
+              <div
+                key={format(date, 'yyyy-MM-dd')}
+                className={`rounded-2xl border overflow-hidden flex flex-col shadow-md shadow-black/20 ${
+                  today ? 'border-terracotta ring-2 ring-terracotta/20' : 'border-forest-500/20'
+                }`}
+                style={{ backgroundColor: '#1e3a1e' }}
+              >
+                <div className={`py-2 text-center ${today ? 'bg-terracotta/15' : ''}`}>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${today ? 'text-terracotta' : 'text-cream-500/40'}`}>
+                    {format(date, 'EEEE')}
+                  </div>
+                  <div className={`text-xl font-serif font-bold leading-tight ${today ? 'text-terracotta' : 'text-cream-500/30'}`}>
+                    {format(date, 'd')}
+                  </div>
+                </div>
+                <div className="flex-1 min-h-[6rem]" />
+              </div>
+            );
+          }
+
+          const meal = day.mealId ? getMeal(day.mealId) : null;
           const isDragOver = dragOverDay === day.date;
           const isDragging = draggedDay === day.date;
           const isClickable = (day.type === 'meal' || day.type === 'leftovers') && meal;
@@ -454,9 +577,9 @@ export default function ThisWeek() {
         })}
       </div>
 
-      {/* Mobile stacked list */}
+      {/* Mobile stacked list — only plan days, no blanks */}
       <div className="md:hidden space-y-2">
-        {weekDays.map((day) => {
+        {mobileDays.map((day) => {
           const date = parseISO(day.date);
           const meal = day.mealId ? getMeal(day.mealId) : null;
           const today = isToday(date);
@@ -545,6 +668,7 @@ export default function ThisWeek() {
       </div>
     </div>
   );
+  };
 
   const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -732,10 +856,13 @@ export default function ThisWeek() {
   );
 
   const renderWeekHeader = (weekIdx: number) => {
-    const weekDays = getWeekDays(weekIdx);
-    if (weekDays.length === 0) return null;
-    const startDate = parseISO(weekDays[0].date);
-    const endDate = parseISO(weekDays[weekDays.length - 1].date);
+    const row = getWeekRow(weekIdx);
+    const planDays = row.filter((d): d is DayPlan => d !== null);
+    if (planDays.length === 0) return null;
+    const anchorDay = row.find(d => d !== null)!;
+    const anchorIdx = row.indexOf(anchorDay);
+    const startDate = addDays(parseISO(anchorDay.date), -anchorIdx);
+    const endDate = addDays(startDate, 6);
 
     return (
       <div className="flex items-center justify-between">
@@ -861,20 +988,20 @@ export default function ThisWeek() {
           {Array.from({ length: totalWeeks }, (_, weekIdx) => (
             <div key={weekIdx} className="space-y-3">
               {renderWeekHeader(weekIdx)}
-              {renderWeekGrid(getWeekDays(weekIdx), weekIdx)}
+              {renderWeekGrid(getWeekRow(weekIdx), weekIdx)}
             </div>
           ))}
         </div>
       ) : isMultiWeek && viewMode === 'paginated' ? (
         <div className="space-y-3">
           {renderWeekHeader(currentWeekIndex)}
-          {renderWeekGrid(currentDays, currentWeekIndex)}
+          {renderWeekGrid(currentRow, currentWeekIndex)}
           <p className="md:hidden text-center text-xs text-cream-500">
             Swipe left/right to change weeks
           </p>
         </div>
       ) : (
-        renderWeekGrid(currentDays, 0)
+        renderWeekGrid(currentRow, 0)
       )}
 
       {/* Leftover meal picker modal */}
