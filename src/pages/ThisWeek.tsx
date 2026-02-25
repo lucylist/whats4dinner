@@ -523,10 +523,9 @@ export default function ThisWeek() {
         </div>
         <button
           onClick={() => handleRegenerateWeek(weekIdx)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-cream-400 hover:text-cream-100 bg-forest-700 hover:bg-forest-600 border border-forest-500/60 rounded-lg px-3 py-1.5 transition-colors"
+          className="flex items-center justify-center text-cream-400 hover:text-cream-100 bg-forest-700 hover:bg-forest-600 border border-forest-500/60 rounded-lg p-1.5 transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Shuffle
         </button>
       </div>
     );
