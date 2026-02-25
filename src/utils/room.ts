@@ -39,6 +39,19 @@ export function clearSavedRoom(): void {
 }
 
 export function resolveRoom(): string | null {
+  // ?reset in the URL forces the Welcome screen
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('reset')) {
+    clearSavedRoom();
+    // Clean the URL so we don't loop on reload
+    params.delete('reset');
+    params.delete('family');
+    const clean = params.toString();
+    const base = window.location.pathname + (clean ? `?${clean}` : '');
+    window.history.replaceState({}, '', base);
+    return null;
+  }
+
   const fromUrl = getRoomFromUrl();
   if (fromUrl) {
     saveRoom(fromUrl);
