@@ -8,13 +8,24 @@ import { clearSavedRoom } from '../utils/room';
 import Button from '../components/Button';
 
 export default function PlanWeek() {
-  const { meals, setCurrentPlan, roomId } = useApp();
+  const { meals, setCurrentPlan, currentPlan, roomId } = useApp();
   const navigate = useNavigate();
-  
-  const [durationCount, setDurationCount] = useState(1);
-  const [durationType, setDurationType] = useState<PlanDuration>('week');
-  const [eatingOutPerWeek, setEatingOutPerWeek] = useState(1);
-  const [leftoversPerWeek, setLeftoversPerWeek] = useState(1);
+
+  // Derive initial values from the current plan if one exists
+  const [durationCount, setDurationCount] = useState(() => currentPlan?.durationCount || 1);
+  const [durationType, setDurationType] = useState<PlanDuration>(() => currentPlan?.duration || 'week');
+  const [eatingOutPerWeek, setEatingOutPerWeek] = useState(() => {
+    if (!currentPlan || currentPlan.days.length === 0) return 1;
+    const totalEO = currentPlan.days.filter(d => d.type === 'eating_out').length;
+    const weeks = Math.max(1, Math.ceil(currentPlan.days.length / 7));
+    return Math.round(totalEO / weeks);
+  });
+  const [leftoversPerWeek, setLeftoversPerWeek] = useState(() => {
+    if (!currentPlan || currentPlan.days.length === 0) return 1;
+    const totalLO = currentPlan.days.filter(d => d.type === 'leftovers').length;
+    const weeks = Math.max(1, Math.ceil(currentPlan.days.length / 7));
+    return Math.round(totalLO / weeks);
+  });
   const [isGenerating, setIsGenerating] = useState(false);
 
   const totalWeeks = durationType === 'month' ? durationCount * 4 : durationCount;
